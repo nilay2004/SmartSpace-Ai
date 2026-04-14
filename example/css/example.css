@@ -436,6 +436,48 @@ a:hover {
   display: block;
 }
 
+/* === 3D Preview Mode (floating window) === */
+#viewer.preview-mode {
+  display: block !important;
+  position: absolute;
+  top: 80px; /* Below the floorplanner controls */
+  right: 20px;
+  width: 280px !important;
+  height: 280px !important; /* Force square shape */
+  z-index: 1000;
+  border: 3px solid var(--color-surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xl);
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform var(--transition-normal);
+}
+
+#viewer.preview-mode:hover {
+  transform: scale(1.02);
+}
+
+#viewer.preview-mode #camera-controls,
+#viewer.preview-mode #main-controls {
+  display: none !important;
+}
+
+#viewer.preview-mode::after {
+  content: '3D Preview';
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background: rgba(15, 23, 42, 0.6);
+  color: #fff;
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  font-weight: 600;
+  pointer-events: none;
+  backdrop-filter: blur(4px);
+  z-index: 1001;
+}
+
 /* === Main Controls (Top) === */
 #main-controls {
   position: absolute;

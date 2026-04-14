@@ -511,11 +511,25 @@ var SideMenu = function(blueprint3d, floorplanControls, modalEffects) {
     blueprint3d.three.getController().setSelectedObject(null);
 
     // show and hide the right divs
-    currentState.div.hide()
-    newState.div.show()
+    if (newState === scope.states.FLOORPLAN) {
+      // In 2D mode, keep 3D as a floating preview
+      $("#viewer").addClass("preview-mode").show();
+      $("#floorplanner").show();
+      $("#add-items").hide();
+    } else {
+      // Transition out of 2D mode
+      $("#viewer").removeClass("preview-mode");
+      currentState.div.hide();
+      newState.div.show();
+    }
 
     // Ensure resizing happens after visibility change
     setTimeout(handleWindowResize, 0);
+
+    // If we just clicked the preview, switch to Design tab
+    $("#viewer.preview-mode").off('click').on('click', function() {
+      setCurrentState(scope.states.DEFAULT);
+    });
 
     // show layouts panel only when Design (3D) tab is active
     if (newState === scope.states.DEFAULT) {
@@ -574,12 +588,20 @@ var SideMenu = function(blueprint3d, floorplanControls, modalEffects) {
     
     $(".sidebar").height(winHeight - topOffset);
     $("#add-items").height(winHeight - topOffset);
-    $("#viewer").height(winHeight - topOffset);
     $("#floorplanner").height(winHeight - topOffset);
 
-    // Update threejs viewer if it's active
-    if (currentState === scope.states.DEFAULT && blueprint3d.three.updateWindowSize) {
-      blueprint3d.three.updateWindowSize();
+    // Update viewer size
+    if ($("#viewer").hasClass("preview-mode")) {
+      // Don't set height/width via JS for preview mode, CSS handles it
+      // But we still need to tell Three.js the dimensions
+      if (blueprint3d.three.updateWindowSize) {
+        blueprint3d.three.updateWindowSize($("#viewer").innerWidth(), $("#viewer").innerHeight());
+      }
+    } else {
+      $("#viewer").height(winHeight - topOffset);
+      if (blueprint3d.three.updateWindowSize) {
+        blueprint3d.three.updateWindowSize();
+      }
     }
   };
 

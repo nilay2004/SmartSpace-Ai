@@ -200,6 +200,7 @@ module BP3D.Floorplanner {
           this.lastX = this.rawMouseX;
           this.lastY = this.rawMouseY;
         }
+        this.model.activeFloor.floorplan.update();
         this.view.draw();
       }
     }
@@ -218,6 +219,23 @@ module BP3D.Floorplanner {
           this.setMode(floorplannerModes.MOVE);
         }
         this.lastNode = corner;
+        this.model.activeFloor.floorplan.update();
+      } else if (this.mode == floorplannerModes.MOVE && !this.mouseMoved) {
+        if (this.activeWall) {
+          const wall = this.activeWall;
+          const edge = (wall.frontEdge && wall.backEdge) ? (wall.frontEdge.interiorDistance() < wall.backEdge.interiorDistance() ? wall.frontEdge : wall.backEdge) : (wall.frontEdge || wall.backEdge);
+          const currentLength = edge ? edge.interiorDistance() : Core.Utils.distance(wall.getStartX(), wall.getStartY(), wall.getEndX(), wall.getEndY());
+          const currentMeasure = Core.Dimensioning.cmToMeasure(currentLength);
+          const newMeasure = window.prompt("Enter new wall length (e.g. 10' or 300cm):", currentMeasure);
+          if (newMeasure !== null && newMeasure !== "") {
+            const newLengthCm = Core.Dimensioning.measureToCm(newMeasure);
+            if (!isNaN(newLengthCm) && newLengthCm > 0) {
+              this.activeWall.resize(newLengthCm);
+              this.model.activeFloor.floorplan.update();
+              this.view.draw();
+            }
+          }
+        }
       }
     }
 

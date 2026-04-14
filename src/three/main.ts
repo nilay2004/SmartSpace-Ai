@@ -210,15 +210,20 @@ module BP3D.Three {
       this.domElement.style.cursor = cursorStyle;
     }
 
-    public updateWindowSize() {
+    public updateWindowSize(width?: number, height?: number) {
       this.heightMargin = this.element.offset().top;
       this.widthMargin = this.element.offset().left;
 
-      this.elementWidth = this.element.innerWidth();
-      if (this.options.resize) {
-        this.elementHeight = window.innerHeight - this.heightMargin;
+      if (width && height) {
+        this.elementWidth = width;
+        this.elementHeight = height;
       } else {
-        this.elementHeight = this.element.innerHeight();
+        this.elementWidth = this.element.innerWidth();
+        if (this.options.resize) {
+          this.elementHeight = window.innerHeight - this.heightMargin;
+        } else {
+          this.elementHeight = this.element.innerHeight();
+        }
       }
 
       this.camera.aspect = this.elementWidth / this.elementHeight;
@@ -238,9 +243,7 @@ module BP3D.Three {
 
       var distance = this.model.activeFloor.floorplan.getSize().z * 1.5;
 
-      var offset = pan.clone().add(
-        new THREE.Vector3(0, distance, distance));
-      //scope.controls.setOffset(offset);
+      var offset = pan.clone().add(new THREE.Vector3(0, distance, distance));
       this.camera.position.copy(offset);
 
       this.controls.update();
