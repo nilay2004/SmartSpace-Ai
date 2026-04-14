@@ -5,20 +5,25 @@
 module BP3D.Three {
   export class Floorplan {
     private scene: THREE.Scene;
-    private floorplan: Model.Floorplan;
+    private model: Model.Model;
     private controls: Three.Controls;
     private floors: Three.Floor[] = [];
     private edges: Three.Edge[] = [];
 
-    constructor(scene: THREE.Scene, floorplan: Model.Floorplan, controls: Three.Controls) {
+    constructor(scene: THREE.Scene, model: Model.Model, controls: Three.Controls) {
       this.scene = scene;
-      this.floorplan = floorplan;
+      this.model = model;
       this.controls = controls;
 
-      this.floorplan.fireOnUpdatedRooms(() => this.redraw());
+      // Redraw when any floorplan changes
+      this.model.floors.forEach((floor) => {
+        floor.floorplan.fireOnUpdatedRooms(() => this.redraw());
+      });
+
+      this.redraw();
     }
 
-    private redraw() {
+    public redraw() {
       // clear scene
       this.floors.forEach((floor) => {
         floor.removeFromScene();
@@ -30,18 +35,20 @@ module BP3D.Three {
       this.floors = [];
       this.edges = [];
 
-      // draw floors
-      this.floorplan.getRooms().forEach((room) => {
-        var threeFloor = new Three.Floor(this.scene, room);
-        this.floors.push(threeFloor);
-        threeFloor.addToScene();
-      });
+      // draw floors for all floors
+      this.model.floors.forEach((floor) => {
+        floor.floorplan.getRooms().forEach((room) => {
+          var threeFloor = new Three.Floor(this.scene, room, floor.height * floor.level);
+          this.floors.push(threeFloor);
+          threeFloor.addToScene();
+        });
 
-      // draw edges
-      this.floorplan.wallEdges().forEach((edge) => {
-        var threeEdge = new Three.Edge(
-          this.scene, edge, this.controls);
-        this.edges.push(threeEdge);
+        // draw edges for this floor
+        floor.floorplan.wallEdges().forEach((edge) => {
+          var threeEdge = new Three.Edge(
+            this.scene, edge, this.controls, floor.height * floor.level);
+          this.edges.push(threeEdge);
+        });
       });
     }
   }

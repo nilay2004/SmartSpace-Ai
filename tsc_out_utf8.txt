@@ -1,0 +1,7 @@
+﻿src/floorplanner/floorplanner.ts(52,18): error TS2341: Property 'activeFloorChangedCallbacks' is private and only accessible within class 'Model'.
+src/items/floor_item.ts(18,33): error TS2339: Property 'floorplan' does not exist on type 'Model'.
+src/items/floor_item.ts(48,30): error TS2339: Property 'floorplan' does not exist on type 'Model'.
+src/items/wall_item.ts(57,34): error TS2339: Property 'floorplan' does not exist on type 'Model'.
+src/items/wall_item.ts(194,25): error TS2339: Property 'floorplan' does not exist on type 'Model'.
+src/three/main.ts(106,18): error TS2341: Property 'activeFloorChangedCallbacks' is private and only accessible within class 'Model'.
+src/three/main.ts(110,24): error TS2341: Property 'redraw' is private and only accessible within class 'Floorplan'.

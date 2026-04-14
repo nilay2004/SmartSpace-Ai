@@ -2,7 +2,7 @@
 /// <reference path="../core/utils.ts" />
 /// <reference path="../model/room.ts" />
 
-module BP3D.Three {
+namespace BP3D.Three {
   export class Floor {
     private room: Model.Room;
     private scene: THREE.Scene;

@@ -36,5 +36,60 @@ namespace BP3D.Core {
           return "" + Math.round(10 * cm) / 1000 + " m";
       }
     }
+
+    /** Converts dimensioning string to cm.
+     * @param measure String representation.
+     * @returns Centi meter value.
+     */
+    public static measureToCm(measure: string): number {
+      const unit = Core.Configuration.getStringValue(Core.configDimUnit);
+      switch (unit) {
+        case dimInch:
+          let feet = 0;
+          let inches = 0;
+          if (measure.indexOf("'") > -1) {
+            const parts = measure.split("'");
+            feet = parseFloat(parts[0]);
+            if (parts.length > 1 && parts[1].indexOf('"') > -1) {
+              inches = parseFloat(parts[1].split('"')[0]);
+            } else if (parts.length > 1) {
+              inches = parseFloat(parts[1]) || 0;
+            }
+          } else {
+            feet = parseFloat(measure);
+          }
+          return (feet * 12 + inches) * 2.54;
+        case dimMilliMeter:
+          return parseFloat(measure) / 10.0;
+        case dimCentiMeter:
+          return parseFloat(measure);
+        case dimMeter:
+        default:
+          return parseFloat(measure) * 100.0;
+      }
+    }
+
+    /** Converts cm^2 to area string (m² / cm² / mm² / ft² depending on unit setting). */
+    public static cm2ToAreaMeasure(cm2: number): string {
+      const unit = Core.Configuration.getStringValue(Core.configDimUnit);
+      switch (unit) {
+        case dimInch: {
+          const ft2 = cm2 / (30.48 * 30.48);
+          return `${Math.round(ft2 * 100) / 100} ft²`;
+        }
+        case dimMilliMeter: {
+          const mm2 = cm2 * 100;
+          return `${Math.round(mm2)} mm²`;
+        }
+        case dimCentiMeter: {
+          return `${Math.round(cm2 * 10) / 10} cm²`;
+        }
+        case dimMeter:
+        default: {
+          const m2 = cm2 / 10000;
+          return `${Math.round(m2 * 100) / 100} m²`;
+        }
+      }
+    }
   }
 }

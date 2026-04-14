@@ -1,6 +1,7 @@
 /// <reference path="../../lib/jquery.d.ts" />
 /// <reference path="../../lib/three.d.ts" />
 /// <reference path="../core/utils.ts" />
+/// <reference path="../core/assets.ts" />
 /// <reference path="../model/half_edge.ts" />
 
 module BP3D.Three {
@@ -10,6 +11,7 @@ module BP3D.Three {
     private controls: any;
     private wall: Model.Wall;
     private front: boolean;
+    private heightOffset: number = 0;
 
     private planes: THREE.Mesh[] = [];
     private basePlanes: THREE.Mesh[] = []; // always visible
@@ -22,13 +24,19 @@ module BP3D.Three {
 
     public visible = false;
 
-    constructor(scene: any, edge: Model.HalfEdge, controls: any) {
+    constructor(scene: any, edge: Model.HalfEdge, controls: any, heightOffset: number = 0) {
       this.scene = scene;
       this.edge = edge;
       this.controls = controls;
       this.wall = edge.wall;
       this.front = edge.front;
+      this.heightOffset = heightOffset;
       this.init();
+    }
+
+    public setHeightOffset(offset: number) {
+      this.heightOffset = offset;
+      this.redraw();
     }
 
     public remove() {
@@ -121,7 +129,7 @@ module BP3D.Three {
       });
       var textureData = this.edge.getTexture();
       var stretch = textureData.stretch;
-      var url = textureData.url;
+      var url = Core.Assets.resolveAssetUrl(textureData.url);
       var scale = textureData.scale;
       var loader = new THREE.TextureLoader();
       loader.setCrossOrigin("anonymous");
@@ -311,7 +319,7 @@ module BP3D.Three {
 
       var filler = new THREE.Mesh(geometry, fillerMaterial);
       filler.rotation.set(Math.PI / 2, 0, 0);
-      filler.position.y = height;
+      filler.position.y = height + this.heightOffset;
       return filler;
     }
 
@@ -320,7 +328,7 @@ module BP3D.Three {
     }
 
     private toVec3(pos: { x: number, y: number }, height?: number) {
-      height = height || 0;
+      height = (height || 0) + this.heightOffset;
       return new THREE.Vector3(pos.x, height, pos.y);
     }
   }

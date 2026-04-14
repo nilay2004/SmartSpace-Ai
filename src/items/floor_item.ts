@@ -15,7 +15,7 @@ module BP3D.Items {
     /** */
     public placeInRoom() {
       if (!this.position_set) {
-        var center = this.model.floorplan.getCenter();
+        var center = this.model.activeFloor.floorplan.getCenter();
         this.position.x = center.x;
         this.position.z = center.z;
         this.position.y = 0.5 * (this.geometry.boundingBox.max.y - this.geometry.boundingBox.min.y);
@@ -45,7 +45,7 @@ module BP3D.Items {
       var corners = this.getCorners(vec3);
 
       // check if we are in a room
-      var rooms = this.model.floorplan.getRooms();
+      var rooms = this.model.activeFloor.floorplan.getRooms();
       var isInARoom = false;
       for (var i = 0; i < rooms.length; i++) {
         if (Core.Utils.pointInPolygon(vec3.x, vec3.z, rooms[i].interiorCorners) &&

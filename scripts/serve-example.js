@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 
 const root = path.resolve(__dirname, '..', 'example');
-const port = process.env.PORT || 8002;
+const port = process.env.PORT || 8004;
 
 function getContentType(file) {
   const ext = path.extname(file).toLowerCase();
@@ -17,6 +17,7 @@ function getContentType(file) {
     '.gif': 'image/gif',
     '.svg': 'image/svg+xml',
     '.json': 'application/json',
+    '.webmanifest': 'application/manifest+json',
     '.map': 'application/octet-stream',
     '.woff': 'font/woff',
     '.woff2': 'font/woff2',

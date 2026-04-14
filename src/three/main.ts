@@ -67,7 +67,7 @@ module BP3D.Three {
       THREE.ImageUtils.crossOrigin = "";
 
       this.domElement = this.element.get(0); // Container
-      this.camera = new THREE.PerspectiveCamera(45, 1, 1, 10000);
+      this.camera = new THREE.PerspectiveCamera(45, 1, 1, 20000);
       this.renderer = new THREE.WebGLRenderer({
         antialias: true,
         preserveDrawingBuffer: true // required to support .toDataURL()
@@ -95,12 +95,23 @@ module BP3D.Three {
 
       // setup camera nicely
       this.centerCamera();
-      this.model.floorplan.fireOnUpdatedRooms(() => this.centerCamera());
+      this.model.activeFloor.floorplan.fireOnUpdatedRooms(() => {
+        this.centerCamera();
+        this.needsUpdate = true;
+      });
 
-      this.lights = new (Three.Lights as any)(this.scene, this.model.floorplan);
+      this.lights = new (Three.Lights as any)(this.scene, this.model.activeFloor.floorplan);
 
       this.floorplan = new Three.Floorplan(this.scene.getScene(),
-        this.model.floorplan, this.controls);
+        this.model, this.controls);
+
+      // Listen to active floor changes
+      this.model.activeFloorChangedCallbacks.add(() => {
+        // Update lights for the new active floor
+        (this.lights as any).updateFloorplan(this.model.activeFloor.floorplan);
+        // Redraw the floorplan
+        this.floorplan.redraw();
+      });
 
       this.animate();
 
@@ -202,15 +213,20 @@ module BP3D.Three {
       this.domElement.style.cursor = cursorStyle;
     }
 
-    public updateWindowSize() {
+    public updateWindowSize(width?: number, height?: number) {
       this.heightMargin = this.element.offset().top;
       this.widthMargin = this.element.offset().left;
 
-      this.elementWidth = this.element.innerWidth();
-      if (this.options.resize) {
-        this.elementHeight = window.innerHeight - this.heightMargin;
+      if (width && height) {
+        this.elementWidth = width;
+        this.elementHeight = height;
       } else {
-        this.elementHeight = this.element.innerHeight();
+        this.elementWidth = this.element.innerWidth();
+        if (this.options.resize) {
+          this.elementHeight = window.innerHeight - this.heightMargin;
+        } else {
+          this.elementHeight = this.element.innerHeight();
+        }
       }
 
       this.camera.aspect = this.elementWidth / this.elementHeight;
@@ -222,17 +238,18 @@ module BP3D.Three {
 
     public centerCamera() {
       var yOffset = 150.0;
-
-      var pan = this.model.floorplan.getCenter();
+      var pan = this.model.activeFloor.floorplan.getCenter();
       pan.y = yOffset;
 
       this.controls.target = pan;
 
-      var distance = this.model.floorplan.getSize().z * 1.5;
+      var size = this.model.activeFloor.floorplan.getSize();
+      // Improved distance calculation to fit entire floorplan in a square view
+      var maxDimension = Math.max(size.x, size.z);
+      var distance = maxDimension * 1.8;
+      if (distance < 600) distance = 600;
 
-      var offset = pan.clone().add(
-        new THREE.Vector3(0, distance, distance));
-      //scope.controls.setOffset(offset);
+      var offset = pan.clone().add(new THREE.Vector3(0, distance, distance));
       this.camera.position.copy(offset);
 
       this.controls.update();

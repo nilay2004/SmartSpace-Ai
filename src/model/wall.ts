@@ -6,7 +6,7 @@
 /// <reference path="corner.ts" />
 /// <reference path="half_edge.ts" />
 
-module BP3D.Model {
+namespace BP3D.Model {
   /** The default wall texture. */
   const defaultWallTexture = {
     url: "rooms/textures/wallmap.png",
@@ -111,6 +111,38 @@ module BP3D.Model {
     public relativeMove(dx: number, dy: number) {
       this.start.relativeMove(dx, dy);
       this.end.relativeMove(dx, dy);
+    }
+
+    /** Resizes the wall to new length.
+     * @param newLength The new length in cm.
+     */
+    public resize(newLength: number) {
+      const dx = this.getEndX() - this.getStartX();
+      const dy = this.getEndY() - this.getStartY();
+      const wallLength = Math.sqrt(dx * dx + dy * dy);
+      if (wallLength < 0.0001) return;
+
+      let targetWallLength = newLength;
+      let edge = null;
+      if (this.frontEdge && this.backEdge) {
+        edge = (this.frontEdge.interiorDistance() < this.backEdge.interiorDistance()) ? this.frontEdge : this.backEdge;
+      } else {
+        edge = this.frontEdge || this.backEdge;
+      }
+
+      if (edge) {
+        const interiorLength = edge.interiorDistance();
+        const offset = wallLength - interiorLength;
+        targetWallLength = newLength + offset;
+      }
+
+      const ux = dx / wallLength;
+      const uy = dy / wallLength;
+
+      const newEndX = this.getStartX() + ux * targetWallLength;
+      const newEndY = this.getStartY() + uy * targetWallLength;
+
+      this.end.move(newEndX, newEndY);
     }
 
     public fireMoved() {

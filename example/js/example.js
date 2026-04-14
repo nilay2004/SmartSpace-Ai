@@ -73,7 +73,7 @@ var CameraButtons = function(blueprint3d) {
   }
 
   function zoomOut(e) {
-    e.preventDefault;
+    e.preventDefault();
     orbitControls.dollyOut(1.1);
     orbitControls.update();
   }
@@ -134,6 +134,66 @@ var ContextMenu = function(blueprint3d) {
         var checked = $(this).prop('checked');
         selectedItem.setFixed(checked);
     });
+
+    // Color picker events
+    $("#item-color-picker").on("input change", function() {
+        var color = $(this).val();
+        $("#item-color-label").text(color);
+        if (selectedItem) {
+            updateItemColor(selectedItem, color);
+        }
+    });
+
+    $(".color-preset").on("click", function() {
+        var color = $(this).css("background-color");
+        // Convert rgb to hex
+        var hex = rgbToHex(color);
+        $("#item-color-picker").val(hex).trigger("change");
+    });
+  }
+
+  function rgbToHex(rgb) {
+    if (rgb.startsWith("#")) return rgb;
+    var match = rgb.match(/^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/);
+    if (!match) return "#ffffff";
+    function hex(x) {
+        return ("0" + parseInt(x).toString(16)).slice(-2);
+    }
+    return "#" + hex(match[1]) + hex(match[2]) + hex(match[3]);
+  }
+
+  function updateItemColor(item, colorHex) {
+    var color = new THREE.Color(colorHex);
+    item.traverse(function(child) {
+        if (child instanceof THREE.Mesh) {
+            if (child.material) {
+                var materials = [];
+                if (Array.isArray(child.material)) {
+                    materials = child.material;
+                } else if (child.material.materials && Array.isArray(child.material.materials)) {
+                    materials = child.material.materials;
+                } else {
+                    materials = [child.material];
+                }
+
+                materials.forEach(function(mat) {
+                    if (mat.color) {
+                        mat.color.copy(color);
+                    }
+                    // For baked models, remove the texture map so the solid color is applied properly
+                    // rather than just tinting the original texture.
+                    if (mat.map) {
+                        mat.map = null;
+                    }
+                    mat.needsUpdate = true;
+                });
+            }
+        }
+    });
+    // Ensure the 3D view renders the change
+    if (blueprint3d && blueprint3d.three) {
+        blueprint3d.three.setNeedsUpdate();
+    }
   }
 
   function cmToIn(cm) {
@@ -156,6 +216,26 @@ var ContextMenu = function(blueprint3d) {
     $("#context-menu").show();
 
     $("#fixed").prop('checked', item.fixed);
+
+    // Show color section for sofas/chairs
+    var name = (item.metadata.itemName || "").toLowerCase();
+    if (name.indexOf("sofa") !== -1 || name.indexOf("chair") !== -1 || name.indexOf("sectional") !== -1) {
+        $("#item-color-section").show();
+        // Try to get current color
+        item.traverse(function(child) {
+            if (child instanceof THREE.Mesh && child.material) {
+                var mat = Array.isArray(child.material) ? child.material[0] : child.material;
+                if (mat && mat.color) {
+                    var hex = "#" + mat.color.getHexString();
+                    $("#item-color-picker").val(hex);
+                    $("#item-color-label").text(hex);
+                    return false; // break traverse
+                }
+            }
+        });
+    } else {
+        $("#item-color-section").hide();
+    }
   }
 
   function resize() {
@@ -233,6 +313,7 @@ var SideMenu = function(blueprint3d, floorplanControls, modalEffects) {
 
   var tabs = {
     "FLOORPLAN" : $("#floorplan_tab"),
+    "FLOORS" : $("#floors_tab"),
     "SHOP" : $("#items_tab"),
     "DESIGN" : $("#design_tab")
   }
@@ -248,6 +329,10 @@ var SideMenu = function(blueprint3d, floorplanControls, modalEffects) {
     "FLOORPLAN" : {
       "div" : $("#floorplanner"),
       "tab" : tabs.FLOORPLAN
+    },
+    "FLOORS" : {
+      "div" : $("#viewer"),
+      "tab" : tabs.FLOORS
     },
     "SHOP" : {
       "div" : $("#add-items"),
@@ -267,17 +352,77 @@ var SideMenu = function(blueprint3d, floorplanControls, modalEffects) {
   }
 
   function loadDesign() {
-    files = $("#loadFile").get(0).files;
-    var reader  = new FileReader();
+    var files = $("#loadFile").get(0).files;
+    if (!files || files.length === 0) return;
+    
+    var reader = new FileReader();
     reader.onload = function(event) {
         var data = event.target.result;
-        blueprint3d.model.loadSerialized(data);
-    }
+        try {
+            // Parse JSON to check the format
+            var parsedData = JSON.parse(data);
+            
+            // Check for valid format (must have either 'floors' or both 'floorplan' and 'items')
+            var isValidFormat = (parsedData.floors && Array.isArray(parsedData.floors)) || 
+                               (parsedData.floorplan && parsedData.items);
+                               
+            if (!isValidFormat) {
+                throw new Error("The file format is not recognized as a valid Blueprint3D design.");
+            }
+            
+            // Handle multi-floor format if the current model doesn't support it directly
+            if (parsedData.floors && Array.isArray(parsedData.floors) && !blueprint3d.model.floors) {
+                // If the model only supports a single floor, load the first one from the floors array
+                var firstFloor = parsedData.floors[0];
+                if (firstFloor) {
+                    var singleFloorData = {
+                        floorplan: firstFloor.floorplan,
+                        items: firstFloor.items
+                    };
+                    blueprint3d.model.loadSerialized(JSON.stringify(singleFloorData));
+                }
+            } else {
+                // Otherwise load directly
+                blueprint3d.model.loadSerialized(data);
+            }
+            
+            // Refresh UI components
+            if (window.floorsPanel && typeof window.floorsPanel.updateFloorsList === "function") {
+                window.floorsPanel.updateFloorsList();
+            }
+            
+            // Center camera and ensure redraw
+            if (blueprint3d.three && typeof blueprint3d.three.centerCamera === "function") {
+                blueprint3d.three.centerCamera();
+            }
+            
+            if (blueprint3d.three && typeof blueprint3d.three.needsUpdate === "function") {
+                blueprint3d.three.needsUpdate();
+            }
+            
+            // Alert user success (optional, but helpful for confirmation)
+            console.log("Design loaded successfully.");
+        } catch (e) {
+            console.error("Error loading design:", e);
+            alert("Failed to load design file. Please make sure it's a valid .blueprint3d file.\nError: " + e.message);
+        } finally {
+            $("#loadFile").val(""); // reset so same file can be loaded again
+        }
+    };
+    
+    reader.onerror = function() {
+        alert("Error reading file from disk.");
+        $("#loadFile").val("");
+    };
+    
     reader.readAsText(files[0]);
   }
 
   function saveDesign() {
     var data = blueprint3d.model.exportSerialized();
+    if (window.BlueprintPWA && typeof BlueprintPWA.saveLastDesign === "function") {
+      BlueprintPWA.saveLastDesign(data);
+    }
     var a = window.document.createElement('a');
     var blob = new Blob([data], {type : 'text'});
     a.href = window.URL.createObjectURL(blob);
@@ -306,6 +451,12 @@ var SideMenu = function(blueprint3d, floorplanControls, modalEffects) {
     $("#update-floorplan").click(floorplanUpdate);
     $("#new").click(newPlan);
     $("#loadFile").change(loadDesign);
+    // Ensure clicking the parent button also triggers the file input
+    $(".btn-file").click(function(e) {
+        if (e.target.id !== "loadFile") {
+            $("#loadFile").click();
+        }
+    });
     $("#saveFile").click(saveDesign);
 
     initLeftMenu();
@@ -314,8 +465,6 @@ var SideMenu = function(blueprint3d, floorplanControls, modalEffects) {
     handleWindowResize();
 
     initItems();
-
-    blueprint3d.model.loadSerialized(window.CUSTOM_LAYOUT);
   }
 
   function floorplanUpdate() {
@@ -362,11 +511,25 @@ var SideMenu = function(blueprint3d, floorplanControls, modalEffects) {
     blueprint3d.three.getController().setSelectedObject(null);
 
     // show and hide the right divs
-    currentState.div.hide()
-    newState.div.show()
+    if (newState === scope.states.FLOORPLAN) {
+      // In 2D mode, keep 3D as a floating preview
+      $("#viewer").addClass("preview-mode").show();
+      $("#floorplanner").show();
+      $("#add-items").hide();
+    } else {
+      // Transition out of 2D mode
+      $("#viewer").removeClass("preview-mode");
+      currentState.div.hide();
+      newState.div.show();
+    }
 
     // Ensure resizing happens after visibility change
     setTimeout(handleWindowResize, 0);
+
+    // If we just clicked the preview, switch to Design tab
+    $("#viewer.preview-mode").off('click').on('click', function() {
+      setCurrentState(scope.states.DEFAULT);
+    });
 
     // show layouts panel only when Design (3D) tab is active
     if (newState === scope.states.DEFAULT) {
@@ -425,12 +588,20 @@ var SideMenu = function(blueprint3d, floorplanControls, modalEffects) {
     
     $(".sidebar").height(winHeight - topOffset);
     $("#add-items").height(winHeight - topOffset);
-    $("#viewer").height(winHeight - topOffset);
     $("#floorplanner").height(winHeight - topOffset);
 
-    // Update threejs viewer if it's active
-    if (currentState === scope.states.DEFAULT && blueprint3d.three.updateWindowSize) {
-      blueprint3d.three.updateWindowSize();
+    // Update viewer size
+    if ($("#viewer").hasClass("preview-mode")) {
+      // Don't set height/width via JS for preview mode, CSS handles it
+      // But we still need to tell Three.js the dimensions
+      if (blueprint3d.three.updateWindowSize) {
+        blueprint3d.three.updateWindowSize($("#viewer").innerWidth(), $("#viewer").innerHeight());
+      }
+    } else {
+      $("#viewer").height(winHeight - topOffset);
+      if (blueprint3d.three.updateWindowSize) {
+        blueprint3d.three.updateWindowSize();
+      }
     }
   };
 
@@ -439,6 +610,10 @@ var SideMenu = function(blueprint3d, floorplanControls, modalEffects) {
     $("#add-items").find(".add-item").unbind('mousedown').mousedown(function(e) {
       var modelUrl = $(this).attr("model-url");
       var itemType = parseInt($(this).attr("model-type"));
+      // Handle procedural items that don't have model files
+      if (modelUrl === "null" || modelUrl === "") {
+        modelUrl = null;
+      }
       var metadata = {
         itemName: $(this).attr("model-name"),
         resizable: true,
@@ -784,6 +959,9 @@ var ViewerFloorplanner = function(blueprint3d) {
   var draw = '#draw';
   var door = '#place-door';
   var windowBtn = '#place-window';
+  var zoomIn = '#zoom-in-floorplan';
+  var zoomOut = '#zoom-out-floorplan';
+  var exportPdf = '#export-floorplan-pdf';
 
   var activeStlye = 'btn-primary disabled';
 
@@ -841,6 +1019,51 @@ var ViewerFloorplanner = function(blueprint3d) {
 
     $(windowBtn).click(function(){
       scope.floorplanner.setMode(BP3D.Floorplanner.floorplannerModes.WINDOW);
+    });
+
+    $(zoomIn).click(function(){
+      scope.floorplanner.zoomIn();
+    });
+
+    $(zoomOut).click(function(){
+      scope.floorplanner.zoomOut();
+    });
+
+    $(exportPdf).click(function () {
+      scope.floorplanner.view.draw();
+      var canvas = document.getElementById("floorplanner-canvas");
+      
+      // Get a high-resolution 3D preview data URL (4x scale for near 4K quality)
+      var previewDataUrl = null;
+      if (blueprint3d.three && typeof blueprint3d.three.renderToDataUrl === "function") {
+        try {
+          // renderToDataUrl(4) renders at 4x the current resolution
+          // Wrapped in try/catch to ensure PDF still exports even if 3D render fails
+          previewDataUrl = blueprint3d.three.renderToDataUrl(4);
+        } catch (e) {
+          console.error("3D Render failed, falling back to dataUrl", e);
+          if (typeof blueprint3d.three.dataUrl === "function") {
+            previewDataUrl = blueprint3d.three.dataUrl();
+          }
+        }
+      } else if (blueprint3d.three && typeof blueprint3d.three.dataUrl === "function") {
+        previewDataUrl = blueprint3d.three.dataUrl();
+      }
+
+      if (!canvas || typeof window.exportFloorplanCanvasToPdf !== "function") {
+        console.error("PDF Export failed: Canvas or export function missing", {
+          canvas: !!canvas,
+          exportFn: typeof window.exportFloorplanCanvasToPdf
+        });
+        return;
+      }
+      var floorName = "Floorplan";
+      try {
+        if (blueprint3d.model && blueprint3d.model.activeFloor && blueprint3d.model.activeFloor.name) {
+          floorName = blueprint3d.model.activeFloor.name;
+        }
+      } catch (e) {}
+      window.exportFloorplanCanvasToPdf(canvas, { floorName: floorName, previewDataUrl: previewDataUrl });
     });
   }
 
@@ -1065,13 +1288,28 @@ var LayoutSlider = function(blueprint3d, setStateFn, states) {
     var layout = layouts[currentSlide];
     var json = window.PRESET_LAYOUTS && window.PRESET_LAYOUTS[layout.key];
     if (json) {
-      blueprint3d.three.getController().setSelectedObject(null);
-      blueprint3d.model.loadSerialized(json);
-      // Switch to Design view if not already there
-      if (setStateFn && states) {
-        setStateFn(states.DEFAULT);
+      try {
+        blueprint3d.three.getController().setSelectedObject(null);
+        blueprint3d.model.loadSerialized(json);
+        // Switch to Design view if not already there
+        if (setStateFn && states) {
+          setStateFn(states.DEFAULT);
+        }
+        
+        // Refresh UI components
+        if (window.floorsPanel && typeof window.floorsPanel.updateFloorsList === "function") {
+          window.floorsPanel.updateFloorsList();
+        }
+        
+        blueprint3d.three.centerCamera();
+        
+        if (blueprint3d.three && typeof blueprint3d.three.needsUpdate === "function") {
+          blueprint3d.three.needsUpdate();
+        }
+      } catch (e) {
+        console.error("Error loading layout:", e);
+        alert("Failed to load preset layout: " + e.message);
       }
-      blueprint3d.three.centerCamera();
     }
   }
   
@@ -1081,6 +1319,95 @@ var LayoutSlider = function(blueprint3d, setStateFn, states) {
     showSlide: showSlide,
     loadCurrentLayout: loadCurrentLayout,
     refresh: function() { showSlide(currentSlide); }
+  };
+}
+
+var FloorsPanel = function (blueprint3d, sideMenu) {
+  var model = blueprint3d.model;
+
+  function init() {
+    // Show/hide panel based on current state.
+    sideMenu.stateChangeCallbacks.add(function (state) {
+      if (state === sideMenu.states.FLOORS) {
+        $("#floors-panel").show();
+        updateFloorsList();
+      } else {
+        $("#floors-panel").hide();
+      }
+    });
+
+    $("#add-floor-btn").on("click", function() {
+      var floorNames = model.floors.map(function(f) { return f.name; });
+      var newName = "Floor " + (model.floors.length + 1);
+      var counter = 1;
+      while (floorNames.includes(newName)) {
+        newName = "Floor " + (model.floors.length + 1 + counter);
+        counter++;
+      }
+      var newFloor = model.addFloor(newName, model.floors.length);
+      updateFloorsList();
+      setActiveFloor(newFloor);
+    });
+
+    updateFloorsList();
+  }
+
+  function updateFloorsList() {
+    var $list = $("#floors-list");
+    $list.empty();
+
+    model.floors.forEach(function(floor, index) {
+      var $floorItem = $("<div>").addClass("floor-item").css({
+        "padding": "8px",
+        "margin-bottom": "4px",
+        "border": "1px solid #ddd",
+        "border-radius": "4px",
+        "cursor": "pointer"
+      });
+
+      if (floor === model.activeFloor) {
+        $floorItem.addClass("active").css("background-color", "#e7f3ff");
+      }
+
+      var $name = $("<span>").text(floor.name).css("font-weight", "bold");
+      var $level = $("<small>").text(" (Level " + floor.level + ")").css("color", "#666");
+
+      $floorItem.append($name).append($level);
+
+      if (model.floors.length > 1) {
+        var $deleteBtn = $("<button>").addClass("btn btn-xs btn-danger pull-right")
+          .html('<span class="glyphicon glyphicon-trash"></span>')
+          .on("click", function(e) {
+            e.stopPropagation();
+            if (confirm("Delete floor '" + floor.name + "'? This will remove all items on this floor.")) {
+              model.removeFloor(floor);
+              updateFloorsList();
+            }
+          });
+        $floorItem.append($deleteBtn);
+      }
+
+      $floorItem.on("click", function() {
+        setActiveFloor(floor);
+      });
+
+      $list.append($floorItem);
+    });
+  }
+
+  function setActiveFloor(floor) {
+    model.setActiveFloor(floor);
+    updateFloorsList();
+    // Notify other components that active floor changed
+    if (blueprint3d.three && blueprint3d.three.needsUpdate) {
+      blueprint3d.three.needsUpdate();
+    }
+  }
+
+  init();
+
+  return {
+    updateFloorsList: updateFloorsList
   };
 }
 
@@ -1112,6 +1439,7 @@ $(document).ready(function() {
     threeElement: '#viewer',
     threeCanvasElement: 'three-canvas',
     textureDir: "models/textures/",
+    assetBase: (typeof window.BLUEPRINT_getAssetBase === "function") ? window.BLUEPRINT_getAssetBase() : "",
     widget: false
   }
   var blueprint3d = new BP3D.Blueprint3d(opts);
@@ -1124,6 +1452,8 @@ $(document).ready(function() {
   var textureSelector = new TextureSelector(blueprint3d, sideMenu);        
   var cameraButtons = new CameraButtons(blueprint3d);
   var roomsPanel = new RoomsPanel(blueprint3d, viewerFloorplanner, sideMenu);
+  var floorsPanel = new FloorsPanel(blueprint3d, sideMenu);
+  window.floorsPanel = floorsPanel;
 
   if (window.initBlueprintVR) {
     window.initBlueprintVR(blueprint3d);
@@ -1133,11 +1463,58 @@ $(document).ready(function() {
     window.initAIPlanner(blueprint3d);
   }
 
-  try {
-    var presetLayout = '{"floorplan":{"corners":{"c1":{"x":308.8640000000001,"y":0},"c2":{"x":1231.7119999999993,"y":0},"c3":{"x":1231.7119999999993,"y":724},"c4":{"x":308.8640000000001,"y":724},"dba26377-1998-4f5d-970a-f2827d60e390":{"x":1231.7119999999993,"y":161.17067700195304},"eb6606b7-59c3-4589-e332-96287a45e0bc":{"x":825.1519999999997,"y":161.17067700195304},"2292688f-2592-4f38-6e66-89d89bd666f8":{"x":825.1519999999997,"y":0},"1fb0c64c-08a2-77b2-777f-8c7263553194":{"x":825.1519999999997,"y":161.17067700195304},"b115c1c3-6cfb-9723-086f-d22c439443b0":{"x":825.1519999999997,"y":724}},"walls":[{"corner1":"c1","corner2":"2292688f-2592-4f38-6e66-89d89bd666f8","frontTexture":{"url":"rooms/textures/wallmap.png","stretch":true,"scale":0},"backTexture":{"url":"rooms/textures/wallmap.png","stretch":true,"scale":0}},{"corner1":"c2","corner2":"dba26377-1998-4f5d-970a-f2827d60e390","frontTexture":{"url":"rooms/textures/wallmap.png","stretch":true,"scale":0},"backTexture":{"url":"rooms/textures/wallmap.png","stretch":true,"scale":0}},{"corner1":"c3","corner2":"b115c1c3-6cfb-9723-086f-d22c439443b0","frontTexture":{"url":"rooms/textures/wallmap.png","stretch":true,"scale":0},"backTexture":{"url":"rooms/textures/wallmap.png","stretch":true,"scale":0}},{"corner1":"c4","corner2":"c1","frontTexture":{"url":"rooms/textures/wallmap.png","stretch":true,"scale":0},"backTexture":{"url":"rooms/textures/wallmap.png","stretch":true,"scale":0}},{"corner1":"dba26377-1998-4f5d-970a-f2827d60e390","corner2":"c3","frontTexture":{"url":"rooms/textures/wallmap.png","stretch":true,"scale":0},"backTexture":{"url":"rooms/textures/wallmap.png","stretch":true,"scale":0}},{"corner1":"dba26377-1998-4f5d-970a-f2827d60e390","corner2":"1fb0c64c-08a2-77b2-777f-8c7263553194","frontTexture":{"url":"rooms/textures/wallmap.png","stretch":true,"scale":0},"backTexture":{"url":"rooms/textures/wallmap.png","stretch":true,"scale":0}},{"corner1":"1fb0c64c-08a2-77b2-777f-8c7263553194","corner2":"2292688f-2592-4f38-6e66-89d89bd666f8","frontTexture":{"url":"rooms/textures/wallmap.png","stretch":true,"scale":0},"backTexture":{"url":"rooms/textures/wallmap.png","stretch":true,"scale":0}},{"corner1":"2292688f-2592-4f38-6e66-89d89bd666f8","corner2":"c2","frontTexture":{"url":"rooms/textures/wallmap.png","stretch":true,"scale":0},"backTexture":{"url":"rooms/textures/wallmap.png","stretch":true,"scale":0}},{"corner1":"1fb0c64c-08a2-77b2-777f-8c7263553194","corner2":"b115c1c3-6cfb-9723-086f-d22c439443b0","frontTexture":{"url":"rooms/textures/wallmap.png","stretch":true,"scale":0},"backTexture":{"url":"rooms/textures/wallmap.png","stretch":true,"scale":0}},{"corner1":"b115c1c3-6cfb-9723-086f-d22c439443b0","corner2":"c4","frontTexture":{"url":"rooms/textures/wallmap.png","stretch":true,"scale":0},"backTexture":{"url":"rooms/textures/wallmap.png","stretch":true,"scale":0}}],"wallTextures":[],"floorTextures":{},"newFloorTextures":{}},"items":[{"item_name":"World Class Toilet Seat","item_type":1,"model_url":"models/js/toilet-seat.json","xpos":1205.794934474077,"ypos":36,"zpos":56.8006559327377,"rotation":-1.5707963267948966,"scale_x":1,"scale_y":1,"scale_z":1,"fixed":false},{"item_name":"Dresser - White","item_type":1,"model_url":"models/js/we-narrow6white_baked.js","xpos":1200.180072030805,"ypos":35.56,"zpos":454.49185921021154,"rotation":-1.5707963267948966,"scale_x":2.733333333333337,"scale_y":0.9985398840390354,"scale_z":0.9829797444252664,"fixed":false},{"item_name":"Open Door","item_type":7,"model_url":"models/js/open_door.js","xpos":911.299037382791,"ypos":110.800000297771,"zpos":161.67066955566406,"rotation":0,"scale_x":1,"scale_y":1,"scale_z":1,"fixed":false},{"item_name":"Open Door","item_type":7,"model_url":"models/js/open_door.js","xpos":824.6519775390625,"ypos":110.800000297771,"zpos":261.3297291348599,"rotation":-1.5707963267948966,"scale_x":1,"scale_y":1,"scale_z":1,"fixed":false},{"item_name":"Dresser - White","item_type":1,"model_url":"models/js/we-narrow6white_baked.js","xpos":1027.066201986063,"ypos":35.56,"zpos":685.711534802538,"rotation":3.141592653589793,"scale_x":1.866666666666668,"scale_y":0.9985398840390354,"scale_z":0.9829797444252664,"fixed":false},{"item_name":"Full Bed","item_type":1,"model_url":"models/js/ik_nordli_full.js","xpos":683.5751405552651,"ypos":49.53,"zpos":592.9368202227345,"rotation":-1.5707963267948966,"scale_x":1.288142857142857,"scale_y":0.9906,"scale_z":1.0033010033010032,"fixed":false},{"item_name":"Dining Table","item_type":1,"model_url":"models/js/cb-scholartable_baked.js","xpos":398.50064546714765,"ypos":38.078950895925004,"zpos":597.8339958356213,"rotation":0,"scale_x":1,"scale_y":1,"scale_z":1,"fixed":false},{"item_name":"Chair","item_type":1,"model_url":"models/js/gus-churchchair-whiteoak.js","xpos":399.13499833720766,"ypos":39.47743068655714,"zpos":666.1723386115017,"rotation":3.141592653589793,"scale_x":1,"scale_y":1,"scale_z":1,"fixed":false},{"item_name":"Chair","item_type":1,"model_url":"models/js/gus-churchchair-whiteoak.js","xpos":386.17890956535484,"ypos":39.47743068655714,"zpos":513.6034737211673,"rotation":0,"scale_x":1,"scale_y":1,"scale_z":1,"fixed":false},{"item_name":"Wardrobe - White","item_type":1,"model_url":"models/js/ik-kivine_baked.js","xpos":790.413489606724,"ypos":94.999999385175,"zpos":426.0458296139562,"rotation":-1.5707963267948966,"scale_x":1,"scale_y":1,"scale_z":1,"fixed":false},{"item_name":"Sectional - Olive","item_type":1,"model_url":"models/js/we-crosby2piece-greenbaked.json","xpos":590.1683201781508,"ypos":45.72,"zpos":311.1342757475881,"rotation":3.141592653589793,"scale_x":1.0628423615337796,"scale_y":1.0076133080433942,"scale_z":0.9948936625795949,"fixed":false},{"item_name":"Closed Door","item_type":7,"model_url":"models/js/closed-door28x80_baked.js","xpos":406.5222549799156,"ypos":110.80000022010701,"zpos":0.5,"rotation":0,"scale_x":1,"scale_y":1,"scale_z":1,"fixed":false},{"item_name":"Media Console - White","item_type":1,"model_url":"models/js/cb-clapboard_baked.js","xpos":633.6269631607563,"ypos":67.88999754395999,"zpos":34.37400867978181,"rotation":0,"scale_x":1,"scale_y":1,"scale_z":1,"fixed":false},{"item_name":"Ganesha Poster","item_type":2,"model_url":"models/js/ganesha-poster.json","xpos":508.9844266502455,"ypos":182.18482967976246,"zpos":6.253750317500636,"rotation":0,"scale_x":1,"scale_y":1,"scale_z":1,"fixed":false},{"item_name":"Bookshelf","item_type":1,"model_url":"models/js/cb-kendallbookcasewalnut_baked.js","xpos":769.6929618879914,"ypos":92.17650034119151,"zpos":27.90474363290329,"rotation":0,"scale_x":1,"scale_y":1,"scale_z":1,"fixed":false}]}';
-    blueprint3d.model.loadSerialized(presetLayout);
-    blueprint3d.three.centerCamera();
-  } catch (e) {
-    console.warn("Failed to load default preset:", e);
+  function loadDefaultPreset() {
+    try {
+      if (!navigator.onLine) {
+        blueprint3d.model.loadSerialized(window.CUSTOM_LAYOUT);
+        blueprint3d.three.centerCamera();
+        return;
+      }
+      var presetLayout = '{"floorplan":{"corners":{"c1":{"x":308.8640000000001,"y":0},"c2":{"x":1231.7119999999993,"y":0},"c3":{"x":1231.7119999999993,"y":724},"c4":{"x":308.8640000000001,"y":724},"dba26377-1998-4f5d-970a-f2827d60e390":{"x":1231.7119999999993,"y":161.17067700195304},"eb6606b7-59c3-4589-e332-96287a45e0bc":{"x":825.1519999999997,"y":161.17067700195304},"2292688f-2592-4f38-6e66-89d89bd666f8":{"x":825.1519999999997,"y":0},"1fb0c64c-08a2-77b2-777f-8c7263553194":{"x":825.1519999999997,"y":161.17067700195304},"b115c1c3-6cfb-9723-086f-d22c439443b0":{"x":825.1519999999997,"y":724}},"walls":[{"corner1":"c1","corner2":"2292688f-2592-4f38-6e66-89d89bd666f8","frontTexture":{"url":"rooms/textures/wallmap.png","stretch":true,"scale":0},"backTexture":{"url":"rooms/textures/wallmap.png","stretch":true,"scale":0}},{"corner1":"c2","corner2":"dba26377-1998-4f5d-970a-f2827d60e390","frontTexture":{"url":"rooms/textures/wallmap.png","stretch":true,"scale":0},"backTexture":{"url":"rooms/textures/wallmap.png","stretch":true,"scale":0}},{"corner1":"c3","corner2":"b115c1c3-6cfb-9723-086f-d22c439443b0","frontTexture":{"url":"rooms/textures/wallmap.png","stretch":true,"scale":0},"backTexture":{"url":"rooms/textures/wallmap.png","stretch":true,"scale":0}},{"corner1":"c4","corner2":"c1","frontTexture":{"url":"rooms/textures/wallmap.png","stretch":true,"scale":0},"backTexture":{"url":"rooms/textures/wallmap.png","stretch":true,"scale":0}},{"corner1":"dba26377-1998-4f5d-970a-f2827d60e390","corner2":"c3","frontTexture":{"url":"rooms/textures/wallmap.png","stretch":true,"scale":0},"backTexture":{"url":"rooms/textures/wallmap.png","stretch":true,"scale":0}},{"corner1":"dba26377-1998-4f5d-970a-f2827d60e390","corner2":"1fb0c64c-08a2-77b2-777f-8c7263553194","frontTexture":{"url":"rooms/textures/wallmap.png","stretch":true,"scale":0},"backTexture":{"url":"rooms/textures/wallmap.png","stretch":true,"scale":0}},{"corner1":"1fb0c64c-08a2-77b2-777f-8c7263553194","corner2":"2292688f-2592-4f38-6e66-89d89bd666f8","frontTexture":{"url":"rooms/textures/wallmap.png","stretch":true,"scale":0},"backTexture":{"url":"rooms/textures/wallmap.png","stretch":true,"scale":0}},{"corner1":"2292688f-2592-4f38-6e66-89d89bd666f8","corner2":"c2","frontTexture":{"url":"rooms/textures/wallmap.png","stretch":true,"scale":0},"backTexture":{"url":"rooms/textures/wallmap.png","stretch":true,"scale":0}},{"corner1":"1fb0c64c-08a2-77b2-777f-8c7263553194","corner2":"b115c1c3-6cfb-9723-086f-d22c439443b0","frontTexture":{"url":"rooms/textures/wallmap.png","stretch":true,"scale":0},"backTexture":{"url":"rooms/textures/wallmap.png","stretch":true,"scale":0}},{"corner1":"b115c1c3-6cfb-9723-086f-d22c439443b0","corner2":"c4","frontTexture":{"url":"rooms/textures/wallmap.png","stretch":true,"scale":0},"backTexture":{"url":"rooms/textures/wallmap.png","stretch":true,"scale":0}}],"wallTextures":[],"floorTextures":{},"newFloorTextures":{}},"items":[{"item_name":"World Class Toilet Seat","item_type":1,"model_url":"models/js/toilet-seat.json","xpos":1205.794934474077,"ypos":36,"zpos":56.8006559327377,"rotation":-1.5707963267948966,"scale_x":1,"scale_y":1,"scale_z":1,"fixed":false},{"item_name":"Dresser - White","item_type":1,"model_url":"models/js/we-narrow6white_baked.js","xpos":1200.180072030805,"ypos":35.56,"zpos":454.49185921021154,"rotation":-1.5707963267948966,"scale_x":2.733333333333337,"scale_y":0.9985398840390354,"scale_z":0.9829797444252664,"fixed":false},{"item_name":"Open Door","item_type":7,"model_url":"models/js/open_door.js","xpos":911.299037382791,"ypos":110.800000297771,"zpos":161.67066955566406,"rotation":0,"scale_x":1,"scale_y":1,"scale_z":1,"fixed":false},{"item_name":"Open Door","item_type":7,"model_url":"models/js/open_door.js","xpos":824.6519775390625,"ypos":110.800000297771,"zpos":261.3297291348599,"rotation":-1.5707963267948966,"scale_x":1,"scale_y":1,"scale_z":1,"fixed":false},{"item_name":"Dresser - White","item_type":1,"model_url":"models/js/we-narrow6white_baked.js","xpos":1027.066201986063,"ypos":35.56,"zpos":685.711534802538,"rotation":3.141592653589793,"scale_x":1.866666666666668,"scale_y":0.9985398840390354,"scale_z":0.9829797444252664,"fixed":false},{"item_name":"Full Bed","item_type":1,"model_url":"models/js/ik_nordli_full.js","xpos":683.5751405552651,"ypos":49.53,"zpos":592.9368202227345,"rotation":-1.5707963267948966,"scale_x":1.288142857142857,"scale_y":0.9906,"scale_z":1.0033010033010032,"fixed":false},{"item_name":"Dining Table","item_type":1,"model_url":"models/js/cb-scholartable_baked.js","xpos":398.50064546714765,"ypos":38.078950895925004,"zpos":597.8339958356213,"rotation":0,"scale_x":1,"scale_y":1,"scale_z":1,"fixed":false},{"item_name":"Chair","item_type":1,"model_url":"models/js/gus-churchchair-whiteoak.js","xpos":399.13499833720766,"ypos":39.47743068655714,"zpos":666.1723386115017,"rotation":3.141592653589793,"scale_x":1,"scale_y":1,"scale_z":1,"fixed":false},{"item_name":"Chair","item_type":1,"model_url":"models/js/gus-churchchair-whiteoak.js","xpos":386.17890956535484,"ypos":39.47743068655714,"zpos":513.6034737211673,"rotation":0,"scale_x":1,"scale_y":1,"scale_z":1,"fixed":false},{"item_name":"Wardrobe - White","item_type":1,"model_url":"models/js/ik-kivine_baked.js","xpos":790.413489606724,"ypos":94.999999385175,"zpos":426.0458296139562,"rotation":-1.5707963267948966,"scale_x":1,"scale_y":1,"scale_z":1,"fixed":false},{"item_name":"Sectional - Olive","item_type":1,"model_url":"models/js/we-crosby2piece-greenbaked.json","xpos":590.1683201781508,"ypos":45.72,"zpos":311.1342757475881,"rotation":3.141592653589793,"scale_x":1.0628423615337796,"scale_y":1.0076133080433942,"scale_z":0.9948936625795949,"fixed":false},{"item_name":"Closed Door","item_type":7,"model_url":"models/js/closed-door28x80_baked.js","xpos":406.5222549799156,"ypos":110.80000022010701,"zpos":0.5,"rotation":0,"scale_x":1,"scale_y":1,"scale_z":1,"fixed":false},{"item_name":"Media Console - White","item_type":1,"model_url":"models/js/cb-clapboard_baked.js","xpos":633.6269631607563,"ypos":67.88999754395999,"zpos":34.37400867978181,"rotation":0,"scale_x":1,"scale_y":1,"scale_z":1,"fixed":false},{"item_name":"Ganesha Poster","item_type":2,"model_url":"models/js/ganesha-poster.json","xpos":508.9844266502455,"ypos":182.18482967976246,"zpos":6.253750317500636,"rotation":0,"scale_x":1,"scale_y":1,"scale_z":1,"fixed":false},{"item_name":"Bookshelf","item_type":1,"model_url":"models/js/cb-kendallbookcasewalnut_baked.js","xpos":769.6929618879914,"ypos":92.17650034119151,"zpos":27.90474363290329,"rotation":0,"scale_x":1,"scale_y":1,"scale_z":1,"fixed":false}]}';
+      blueprint3d.model.loadSerialized(presetLayout);
+      blueprint3d.three.centerCamera();
+    } catch (e) {
+      console.warn("Failed to load default preset:", e);
+    }
+  }
+
+  function initDesign() {
+    if (window.BlueprintPWA && typeof BlueprintPWA.shouldPreferOfflineLastDesign === "function" &&
+        BlueprintPWA.shouldPreferOfflineLastDesign() &&
+        typeof BlueprintPWA.loadLastDesign === "function") {
+      BlueprintPWA.loadLastDesign().then(function (data) {
+        if (data) {
+          try {
+            blueprint3d.model.loadSerialized(data);
+            blueprint3d.three.centerCamera();
+            return;
+          } catch (e) {
+            console.warn("Failed to load offline last design:", e);
+          }
+        }
+        loadDefaultPreset();
+      });
+      return;
+    }
+    loadDefaultPreset();
+  }
+
+  initDesign();
+
+  if (window.BlueprintPWA) {
+    if (typeof BlueprintPWA.register === "function") {
+      BlueprintPWA.register();
+    }
+    function persistLastDesign() {
+      try {
+        if (typeof BlueprintPWA.saveLastDesign === "function" && blueprint3d && blueprint3d.model) {
+          BlueprintPWA.saveLastDesign(blueprint3d.model.exportSerialized());
+        }
+      } catch (e) {
+        console.warn("persistLastDesign:", e);
+      }
+    }
+    window.addEventListener("beforeunload", persistLastDesign);
+    setInterval(persistLastDesign, 60000);
   }
 });

@@ -1,377 +1,482 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Blueprint 3D - Floor Plan Designer</title>
-    <meta name="description" content="Design your dream home with Blueprint 3D - an interactive floor plan and interior design tool.">
 
-    <link href="css/bootstrap.css" rel="stylesheet">
-    <link href="css/custom.css" rel="stylesheet">
-    <link href="css/dark-mode.css" rel="stylesheet">
-    <link href="css/example.css" rel="stylesheet">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#2c3e50">
+  <!-- Optional CDN base for models/textures (trailing slash). Leave empty for same-origin relative paths. -->
+  <meta name="blueprint-asset-base" content="">
+  <title>SmartSpace - Floor Plan Designer</title>
+  <meta name="description"
+    content="Design your dream home with SmartSpace - an interactive floor plan and interior design tool.">
 
-    <script src="js/three.min.js"></script>
-    <script src="js/blueprint3d.js"></script>
+  <link rel="manifest" href="manifest.webmanifest">
 
-    <script src="js/jquery.js"></script>
-    <script src="js/bootstrap.js"></script>
-    
-    <script src="js/items.js"></script>
-    <script src="js/custom.js"></script>
-    <script src="js/layouts.js"></script>
-    <script src="js/custom_layout.js"></script>
-    <script src="js/vr-mode.js"></script>
-    <script src="js/ai-planner.js"></script>
-    <script src="js/mirror-logic.js"></script>
-    <script src="js/example.js"></script>
-    <script src="js/walkthrough.js"></script>
-  </head>
+  <link href="css/bootstrap.css" rel="stylesheet">
+  <link href="css/custom.css" rel="stylesheet">
+  <link href="css/dark-mode.css" rel="stylesheet">
+  <link href="css/example.css" rel="stylesheet">
 
-  <body>
-    <!-- Mobile sidebar overlay -->
-    <div class="sidebar-overlay"></div>
+  <script src="js/three.min.js"></script>
+  <script src="js/asset-config.js"></script>
+  <script src="js/blueprint3d.js"></script>
 
-    <!-- Top Bar -->
-    <div class="top-bar">
-      <div class="top-bar-brand">
-        <div class="brand-icon">
-          <span class="glyphicon glyphicon-home" style="font-size:15px;"></span>
-        </div>
-        <span>Blueprint 3D</span>
+  <script src="js/jquery.js"></script>
+  <script src="js/bootstrap.js"></script>
+
+  <script src="js/items.js"></script>
+  <script src="js/custom.js"></script>
+  <script src="js/layouts.js"></script>
+  <script src="js/custom_layout.js"></script>
+  <script src="js/vr-mode.js"></script>
+  <script src="js/ai-planner.js"></script>
+  <script src="js/mirror-logic.js"></script>
+  <script src="js/pwa.js"></script>
+  <script src="js/jspdf.umd.min.js"></script>
+  <script src="js/floorplan-pdf-export.js"></script>
+  <script src="js/example.js"></script>
+  <script src="js/walkthrough.js"></script>
+</head>
+
+<body>
+  <!-- Mobile sidebar overlay -->
+  <div class="sidebar-overlay"></div>
+
+  <!-- Top Bar -->
+  <div class="top-bar">
+    <div class="top-bar-brand">
+      <div class="brand-icon">
+        <span class="glyphicon glyphicon-home" style="font-size:15px;"></span>
       </div>
-
-      <div class="top-bar-right">
-        <div class="top-bar-actions hidden-xs">
-          <a href="#" class="btn btn-default btn-sm" id="new">
-            <span class="glyphicon glyphicon-file"></span> New
-          </a>
-          <a href="#" class="btn btn-default btn-sm" id="saveFile">
-            <span class="glyphicon glyphicon-floppy-disk"></span> Save
-          </a>
-          <a class="btn btn-sm btn-default btn-file">
-            <input type="file" class="hidden-input" id="loadFile">
-            <span class="glyphicon glyphicon-open"></span> Load
-          </a>
-        </div>
-        <div class="dark-mode-toggle">
-          <input type="checkbox" id="dark-mode-switch" />
-          <label for="dark-mode-switch"></label>
-        </div>
-        <button id="mobile-menu-toggle" class="btn btn-default btn-sm visible-xs" style="margin-left:4px;">
-          <span class="glyphicon glyphicon-menu-hamburger"></span>
-        </button>
-      </div>
+      <span>SmartSpace</span>
     </div>
 
-    <!-- Main Layout -->
-    <div class="row main-row">
-      <!-- Sidebar -->
-      <div class="col-md-3 col-sm-4 col-xs-12 sidebar">
-        <!-- Navigation -->
-        <ul class="nav nav-sidebar">
-          <li id="floorplan_tab"><a href="#">
+    <div class="top-bar-right">
+      <div class="top-bar-actions hidden-xs">
+        <a href="#" class="btn btn-default btn-sm" id="new">
+          <span class="glyphicon glyphicon-file"></span> New
+        </a>
+        <a href="#" class="btn btn-default btn-sm" id="saveFile">
+          <span class="glyphicon glyphicon-floppy-disk"></span> Save
+        </a>
+        <a class="btn btn-sm btn-default btn-file">
+          <input type="file" class="hidden-input" id="loadFile">
+          <span class="glyphicon glyphicon-open"></span> Load
+        </a>
+      </div>
+      <div class="dark-mode-toggle">
+        <input type="checkbox" id="dark-mode-switch" />
+        <label for="dark-mode-switch"></label>
+      </div>
+      <button id="mobile-menu-toggle" class="btn btn-default btn-sm visible-xs" style="margin-left:4px;">
+        <span class="glyphicon glyphicon-menu-hamburger"></span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Main Layout -->
+  <div class="row main-row">
+    <!-- Sidebar -->
+    <div class="col-md-3 col-sm-4 col-xs-12 sidebar">
+      <!-- Navigation -->
+      <ul class="nav nav-sidebar">
+        <li id="floorplan_tab"><a href="#">
             <span class="nav-icon glyphicon glyphicon-pencil"></span>
             Edit Floorplan
             <span class="nav-arrow glyphicon glyphicon-chevron-right pull-right"></span>
           </a></li>
-          <li id="design_tab"><a href="#">
+        <li id="floors_tab"><a href="#">
+            <span class="nav-icon glyphicon glyphicon-th-list"></span>
+            Manage Floors
+            <span class="nav-arrow glyphicon glyphicon-chevron-right pull-right"></span>
+          </a></li>
+        <li id="design_tab"><a href="#">
             <span class="nav-icon glyphicon glyphicon-eye-open"></span>
             Design
             <span class="nav-arrow glyphicon glyphicon-chevron-right pull-right"></span>
           </a></li>
-          <li id="items_tab"><a href="#">
+        <li id="items_tab"><a href="#">
             <span class="nav-icon glyphicon glyphicon-th-large"></span>
             Add Items
             <span class="nav-arrow glyphicon glyphicon-chevron-right pull-right"></span>
           </a></li>
-        </ul>
+      </ul>
 
-        <div class="sidebar-divider"></div>
+      <div class="sidebar-divider"></div>
 
-        <!-- Layouts Panel (shown when Design tab is active) -->
-        <div id="layouts-panel" class="sidebar-section" style="display:none;">
-          <div class="panel">
-            <div class="panel-heading">
-              <span class="glyphicon glyphicon-th" style="margin-right:6px; opacity:0.6;"></span>
-              Choose Layout
-            </div>
-            <div class="panel-body">
-              <p class="text-muted" style="font-size:12px; margin-bottom:12px;">Browse and select a preset floor plan.</p>
-              
-              <!-- Layout Slider -->
-              <div class="layout-slider-container">
-                <div class="layout-slider-wrapper">
-                  <div class="layout-slider" id="layout-slider">
-                    <!-- Slides added dynamically -->
-                  </div>
-                </div>
-                
-                <!-- Slider Navigation -->
-                <div class="layout-slider-nav">
-                  <button class="btn btn-sm btn-default layout-slider-prev" type="button">
-                    <span class="glyphicon glyphicon-chevron-left"></span>
-                  </button>
-                  <div class="layout-slider-dots"></div>
-                  <button class="btn btn-sm btn-default layout-slider-next" type="button">
-                    <span class="glyphicon glyphicon-chevron-right"></span>
-                  </button>
-                </div>
-                
-                <!-- Selected Layout Info -->
-                <div class="layout-info" id="layout-info">
-                  <h5 class="layout-title"></h5>
-                  <p class="layout-description text-muted"></p>
-                  <button class="btn btn-primary btn-block layout-load-btn" type="button" style="margin-top:10px;">
-                    <span class="glyphicon glyphicon-download-alt" style="margin-right:4px;"></span>
-                    Load This Layout
-                  </button>
+      <!-- Layouts Panel (shown when Design tab is active) -->
+      <div id="layouts-panel" class="sidebar-section" style="display:none;">
+        <div class="panel">
+          <div class="panel-heading">
+            <span class="glyphicon glyphicon-th" style="margin-right:6px; opacity:0.6;"></span>
+            Choose Layout
+          </div>
+          <div class="panel-body">
+            <p class="text-muted" style="font-size:12px; margin-bottom:12px;">Browse and select a preset floor plan.</p>
+
+            <!-- Layout Slider -->
+            <div class="layout-slider-container">
+              <div class="layout-slider-wrapper">
+                <div class="layout-slider" id="layout-slider">
+                  <!-- Slides added dynamically -->
                 </div>
               </div>
-            </div>
-          </div>
-        </div>
 
-        <!-- Context Menu (hidden until item selected) -->
-        <div id="context-menu" class="sidebar-section">
-          <div style="margin-bottom:12px;">
-            <span id="context-menu-name" class="lead" style="font-size:16px; font-weight:700;"></span>
-          </div>
-          
-          <button class="btn btn-block btn-danger btn-sm" id="context-menu-delete" style="margin-bottom:12px;">
-            <span class="glyphicon glyphicon-trash"></span> 
-            Delete Item
-          </button>
-
-          <div class="panel">
-            <div class="panel-heading">
-              <span class="glyphicon glyphicon-resize-full" style="margin-right:6px; opacity:0.6;"></span>
-              Adjust Size
-            </div>
-            <div class="panel-body">
-              <div class="form form-horizontal">
-                <div class="form-group">
-                  <label class="col-sm-5 control-label">Width</label>
-                  <div class="col-sm-6">
-                    <input type="number" class="form-control input-sm" id="item-width">
-                  </div>
-                </div>
-                <div class="form-group">
-                  <label class="col-sm-5 control-label">Depth</label>
-                  <div class="col-sm-6">
-                    <input type="number" class="form-control input-sm" id="item-depth">
-                  </div>
-                </div>
-                <div class="form-group">
-                  <label class="col-sm-5 control-label">Height</label>
-                  <div class="col-sm-6">
-                    <input type="number" class="form-control input-sm" id="item-height">
-                  </div>
-                </div>
-              </div>
-              <small class="text-muted">Measurements in inches.</small>
-            </div>
-          </div>
-
-          <div style="padding:6px 0;">
-            <label style="display:flex; align-items:center; gap:8px; font-weight:500; cursor:pointer;">
-              <input type="checkbox" id="fixed" /> Lock in place
-            </label>
-          </div>
-        </div>
-
-        <!-- Floor Textures -->
-        <div id="floorTexturesDiv" class="sidebar-section" style="display:none;">
-          <div class="panel">
-            <div class="panel-heading">
-              <span class="glyphicon glyphicon-tint" style="margin-right:6px; opacity:0.6;"></span>
-              Adjust Floor
-            </div>
-            <div class="panel-body">
-              <div class="texture-grid">
-                <a href="#" class="thumbnail texture-select-thumbnail" texture-url="rooms/textures/light_fine_wood.jpg" texture-stretch="false" texture-scale="300">
-                  <img alt="Light fine wood" src="rooms/thumbnails/thumbnail_light_fine_wood.jpg" />
-                </a>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Rooms Panel -->
-        <div id="rooms-panel" class="sidebar-section" style="display:none;">
-          <div class="panel">
-            <div class="panel-heading">
-              <span class="glyphicon glyphicon-th-large" style="margin-right:6px; opacity:0.6;"></span>
-              Rooms
-            </div>
-            <div class="panel-body">
-              <div class="small text-muted" style="margin-bottom:10px;">
-                <span id="rooms-total"></span>
-              </div>
-              <div style="display:flex; gap:8px; margin-bottom:12px;">
-                <button class="btn btn-sm btn-default" id="rooms-export-csv" type="button" style="flex:1;">
-                  <span class="glyphicon glyphicon-download-alt" style="margin-right:4px;"></span>
-                  Export CSV
+              <!-- Slider Navigation -->
+              <div class="layout-slider-nav">
+                <button class="btn btn-sm btn-default layout-slider-prev" type="button">
+                  <span class="glyphicon glyphicon-chevron-left"></span>
+                </button>
+                <div class="layout-slider-dots"></div>
+                <button class="btn btn-sm btn-default layout-slider-next" type="button">
+                  <span class="glyphicon glyphicon-chevron-right"></span>
                 </button>
               </div>
 
-              <div class="sidebar-section-title" style="margin-bottom:6px;">Lighting</div>
-              <select id="lighting-preset" class="form-control input-sm" style="margin-bottom:10px;">
-                <option value="soft">Soft</option>
-                <option value="noon" selected>Noon</option>
-                <option value="sunset">Sunset</option>
-                <option value="studio">Studio</option>
-              </select>
-
-              <div class="sidebar-section-title" style="margin-bottom:6px;">Time of Day</div>
-              <input id="sun-time" type="range" min="6" max="18" step="0.25" value="12" style="width:100%; margin-bottom:4px;" />
-              <div class="small text-muted" style="display:flex; justify-content:space-between; margin-bottom:14px;">
-                <span>6am</span><span id="sun-time-label" style="font-weight:600; color:var(--color-text);">12:00</span><span>6pm</span>
-              </div>
-
-              <div class="sidebar-section-title" style="margin-bottom:8px;">Room List</div>
-              <div id="rooms-list" style="max-height: 260px; overflow:auto;"></div>
-              <div class="small text-muted" style="margin-top:8px; font-size:11px;">
-                <span class="glyphicon glyphicon-info-sign" style="margin-right:4px;"></span>
-                Click a room to focus. Use rename to edit.
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Wall Textures -->
-        <div id="wallTextures" class="sidebar-section" style="display:none;">
-          <div class="panel">
-            <div class="panel-heading">
-              <span class="glyphicon glyphicon-unchecked" style="margin-right:6px; opacity:0.6;"></span>
-              Adjust Wall
-            </div>
-            <div class="panel-body">
-              <div class="texture-grid">
-                <a href="#" class="thumbnail texture-select-thumbnail" texture-url="rooms/textures/marbletiles.jpg" texture-stretch="false" texture-scale="300">
-                  <img alt="Marble tiles" src="rooms/thumbnails/thumbnail_marbletiles.jpg" />
-                </a>
-                <a href="#" class="thumbnail texture-select-thumbnail" texture-url="rooms/textures/wallmap_yellow.png" texture-stretch="true" texture-scale="">
-                  <img alt="Yellow wall" src="rooms/thumbnails/thumbnail_wallmap_yellow.png" />
-                </a>
-                <a href="#" class="thumbnail texture-select-thumbnail" texture-url="rooms/textures/light_brick.jpg" texture-stretch="false" texture-scale="100">
-                  <img alt="Light brick" src="rooms/thumbnails/thumbnail_light_brick.jpg" />
-                </a>
+              <!-- Selected Layout Info -->
+              <div class="layout-info" id="layout-info">
+                <h5 class="layout-title"></h5>
+                <p class="layout-description text-muted"></p>
+                <button class="btn btn-primary btn-block layout-load-btn" type="button" style="margin-top:10px;">
+                  <span class="glyphicon glyphicon-download-alt" style="margin-right:4px;"></span>
+                  Load This Layout
+                </button>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Main Content -->
-      <div class="col-md-9 col-sm-8 col-xs-12 main">
-
-        <!-- 3D Viewer -->
-        <div id="viewer">
-          <!-- Top-left controls -->
-          <div id="main-controls">
-            <span class="btn-group">
-              <select id="room-type-select" class="form-control input-sm" style="display:inline-block; width:auto; height:30px; vertical-align:middle; cursor:pointer; position:relative; z-index:10; border-radius:6px 0 0 6px;">
-                <option value="living_room">Living Room</option>
-                <option value="bedroom">Bedroom</option>
-                <option value="dining_room">Dining Room</option>
-              </select>
-              <a href="#" class="btn btn-success btn-sm" id="auto-furnish-btn" style="border-radius:0;">
-                <span class="glyphicon glyphicon-flash"></span> AI Auto-Furnish
-              </a>
-              <a href="#" class="btn btn-info btn-sm" id="enter-vr" style="border-radius:0 6px 6px 0;">
-                <span class="glyphicon glyphicon-sunglasses"></span> VR
-              </a>
-            </span>
+      <!-- Floors Panel -->
+      <div id="floors-panel" class="sidebar-section" style="display:none;">
+        <div class="panel">
+          <div class="panel-heading">
+            <span class="glyphicon glyphicon-th-list" style="margin-right:6px; opacity:0.6;"></span>
+            Floors
           </div>
+          <div class="panel-body">
+            <p class="text-muted" style="font-size:12px; margin-bottom:12px;">Manage multiple floors in your building.
+            </p>
 
-          <!-- Bottom-right camera controls -->
-          <div id="camera-controls">
-            <div class="camera-zoom">
-              <a href="#" class="btn" id="zoom-in" title="Zoom In">
-                <span class="glyphicon glyphicon-plus"></span>
-              </a>
-              <a href="#" class="btn" id="reset-view" title="Reset View">
-                <span class="glyphicon glyphicon-home"></span>
-              </a>
-              <a href="#" class="btn" id="zoom-out" title="Zoom Out">
-                <span class="glyphicon glyphicon-minus"></span>
-              </a>
-            </div>
-            <div class="camera-pan">
-              <a class="btn" href="#" id="move-up" title="Pan Up">
-                <span class="glyphicon glyphicon-chevron-up"></span>
-              </a>
-              <a class="btn" href="#" id="move-left" title="Pan Left">
-                <span class="glyphicon glyphicon-chevron-left"></span>
-              </a>
-              <a class="btn" href="#" id="move-right" title="Pan Right">
-                <span class="glyphicon glyphicon-chevron-right"></span>
-              </a>
-              <a class="btn" href="#" id="move-down" title="Pan Down">
-                <span class="glyphicon glyphicon-chevron-down"></span>
-              </a>
-            </div>
-          </div>
-
-          <!-- Loading overlay -->
-          <div id="loading-modal">
-            <h1>Loading...</h1>
-          </div>
-        </div>
-
-        <!-- 2D Floorplanner -->
-        <div id="floorplanner">
-          <canvas id="floorplanner-canvas"></canvas>
-          <div id="floorplanner-controls">
-            <button id="move" class="btn btn-sm btn-default">
-              <span class="glyphicon glyphicon-move"></span>
-              Move
-            </button>
-            <button id="draw" class="btn btn-sm btn-default">
-              <span class="glyphicon glyphicon-pencil"></span>
-              Draw
-            </button>
-            <button id="delete" class="btn btn-sm btn-default">
-              <span class="glyphicon glyphicon-remove"></span>
-              Delete
-            </button>
-            <button id="place-door" class="btn btn-sm btn-default">
-              <span class="glyphicon glyphicon-log-in"></span>
-              Door
-            </button>
-            <button id="place-window" class="btn btn-sm btn-default">
-              <span class="glyphicon glyphicon-modal-window"></span>
-              Window
-            </button>
-            <span class="pull-right">
-              <button class="btn btn-primary btn-sm" id="update-floorplan">
-                Done <span class="glyphicon glyphicon-chevron-right" style="margin-left:2px;"></span>
+            <div style="margin-bottom:12px;">
+              <button class="btn btn-sm btn-success btn-block" id="add-floor-btn">
+                <span class="glyphicon glyphicon-plus"></span> Add New Floor
               </button>
-            </span>
-          </div>
-          <div id="draw-walls-hint">
-            <span class="glyphicon glyphicon-info-sign" style="margin-right:6px;"></span>
-            Press "Esc" to stop drawing walls
-          </div>
-        </div>
+            </div>
 
-        <!-- Add Items -->
-        <div id="add-items">
-          <div style="margin-bottom:16px;">
-            <h3 style="font-size:18px; font-weight:700; margin:0 0 4px 0; color:var(--color-text);">Furniture Catalog</h3>
-            <p class="text-muted" style="font-size:12px; margin:0;">Click any item to add it to your design.</p>
-          </div>
-          <div id="items-wrapper">
-            <!-- Items added by items.js -->
+            <div class="sidebar-section-title" style="margin-bottom:6px;">Current Floors</div>
+            <div id="floors-list" style="max-height: 200px; overflow:auto;">
+              <!-- Floors added dynamically -->
+            </div>
+
+            <div class="small text-muted" style="margin-top:8px; font-size:11px;">
+              <span class="glyphicon glyphicon-info-sign" style="margin-right:4px;"></span>
+              Click a floor to edit it. Use rename to change floor names.
+            </div>
           </div>
         </div>
-    
       </div>
-      <!-- End Main Content -->
-    </div>
-    <!-- End Main Layout -->
 
-  </body>
+      <!-- Context Menu (hidden until item selected) -->
+      <div id="context-menu" class="sidebar-section">
+        <div style="margin-bottom:12px;">
+          <span id="context-menu-name" class="lead" style="font-size:16px; font-weight:700;"></span>
+        </div>
+
+        <button class="btn btn-block btn-danger btn-sm" id="context-menu-delete" style="margin-bottom:12px;">
+          <span class="glyphicon glyphicon-trash"></span>
+          Delete Item
+        </button>
+
+        <div class="panel">
+          <div class="panel-heading">
+            <span class="glyphicon glyphicon-resize-full" style="margin-right:6px; opacity:0.6;"></span>
+            Adjust Size
+          </div>
+          <div class="panel-body">
+            <div class="form form-horizontal">
+              <div class="form-group">
+                <label class="col-sm-5 control-label">Width</label>
+                <div class="col-sm-6">
+                  <input type="number" class="form-control input-sm" id="item-width">
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="col-sm-5 control-label">Depth</label>
+                <div class="col-sm-6">
+                  <input type="number" class="form-control input-sm" id="item-depth">
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="col-sm-5 control-label">Height</label>
+                <div class="col-sm-6">
+                  <input type="number" class="form-control input-sm" id="item-height">
+                </div>
+              </div>
+            </div>
+            <small class="text-muted">Measurements in inches.</small>
+          </div>
+        </div>
+
+        <div style="padding:6px 0;">
+          <label style="display:flex; align-items:center; gap:8px; font-weight:500; cursor:pointer;">
+            <input type="checkbox" id="fixed" /> Lock in place
+          </label>
+        </div>
+
+        <!-- Item Color Picker -->
+        <div id="item-color-section" class="panel" style="display:none; margin-top:12px;">
+          <div class="panel-heading">
+            <span class="glyphicon glyphicon-tint" style="margin-right:6px; opacity:0.6;"></span>
+            Item Color
+          </div>
+          <div class="panel-body">
+            <div style="display:flex; align-items:center; gap:10px;">
+              <input type="color" id="item-color-picker" class="form-control"
+                style="width:50px; height:34px; padding:2px; cursor:pointer;">
+              <span id="item-color-label" class="small text-muted">#ffffff</span>
+            </div>
+            <div style="margin-top:10px; display:flex; flex-wrap:wrap; gap:5px;">
+              <div class="color-preset"
+                style="background:#ffffff; width:20px; height:20px; border:1px solid #ddd; border-radius:3px; cursor:pointer;"
+                title="White"></div>
+              <div class="color-preset"
+                style="background:#ff0000; width:20px; height:20px; border:1px solid #ddd; border-radius:3px; cursor:pointer;"
+                title="Red"></div>
+              <div class="color-preset"
+                style="background:#00ff00; width:20px; height:20px; border:1px solid #ddd; border-radius:3px; cursor:pointer;"
+                title="Green"></div>
+              <div class="color-preset"
+                style="background:#0000ff; width:20px; height:20px; border:1px solid #ddd; border-radius:3px; cursor:pointer;"
+                title="Blue"></div>
+              <div class="color-preset"
+                style="background:#ffff00; width:20px; height:20px; border:1px solid #ddd; border-radius:3px; cursor:pointer;"
+                title="Yellow"></div>
+              <div class="color-preset"
+                style="background:#ff00ff; width:20px; height:20px; border:1px solid #ddd; border-radius:3px; cursor:pointer;"
+                title="Magenta"></div>
+              <div class="color-preset"
+                style="background:#00ffff; width:20px; height:20px; border:1px solid #ddd; border-radius:3px; cursor:pointer;"
+                title="Cyan"></div>
+              <div class="color-preset"
+                style="background:#000000; width:20px; height:20px; border:1px solid #ddd; border-radius:3px; cursor:pointer;"
+                title="Black"></div>
+              <div class="color-preset"
+                style="background:#808080; width:20px; height:20px; border:1px solid #ddd; border-radius:3px; cursor:pointer;"
+                title="Grey"></div>
+              <div class="color-preset"
+                style="background:#8b4513; width:20px; height:20px; border:1px solid #ddd; border-radius:3px; cursor:pointer;"
+                title="Brown"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Floor Textures -->
+      <div id="floorTexturesDiv" class="sidebar-section" style="display:none;">
+        <div class="panel">
+          <div class="panel-heading">
+            <span class="glyphicon glyphicon-tint" style="margin-right:6px; opacity:0.6;"></span>
+            Adjust Floor
+          </div>
+          <div class="panel-body">
+            <div class="texture-grid">
+              <a href="#" class="thumbnail texture-select-thumbnail" texture-url="rooms/textures/light_fine_wood.jpg"
+                texture-stretch="false" texture-scale="300">
+                <img alt="Light fine wood" src="rooms/thumbnails/thumbnail_light_fine_wood.jpg" />
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Rooms Panel -->
+      <div id="rooms-panel" class="sidebar-section" style="display:none;">
+        <div class="panel">
+          <div class="panel-heading">
+            <span class="glyphicon glyphicon-th-large" style="margin-right:6px; opacity:0.6;"></span>
+            Rooms
+          </div>
+          <div class="panel-body">
+            <div class="small text-muted" style="margin-bottom:10px;">
+              <span id="rooms-total"></span>
+            </div>
+            <div style="display:flex; gap:8px; margin-bottom:12px;">
+              <button class="btn btn-sm btn-default" id="rooms-export-csv" type="button" style="flex:1;">
+                <span class="glyphicon glyphicon-download-alt" style="margin-right:4px;"></span>
+                Export CSV
+              </button>
+            </div>
+
+            <div class="sidebar-section-title" style="margin-bottom:6px;">Lighting</div>
+            <select id="lighting-preset" class="form-control input-sm" style="margin-bottom:10px;">
+              <option value="soft">Soft</option>
+              <option value="noon" selected>Noon</option>
+              <option value="sunset">Sunset</option>
+              <option value="studio">Studio</option>
+            </select>
+
+            <div class="sidebar-section-title" style="margin-bottom:6px;">Time of Day</div>
+            <input id="sun-time" type="range" min="6" max="18" step="0.25" value="12"
+              style="width:100%; margin-bottom:4px;" />
+            <div class="small text-muted" style="display:flex; justify-content:space-between; margin-bottom:14px;">
+              <span>6am</span><span id="sun-time-label"
+                style="font-weight:600; color:var(--color-text);">12:00</span><span>6pm</span>
+            </div>
+
+            <div class="sidebar-section-title" style="margin-bottom:8px;">Room List</div>
+            <div id="rooms-list" style="max-height: 260px; overflow:auto;"></div>
+            <div class="small text-muted" style="margin-top:8px; font-size:11px;">
+              <span class="glyphicon glyphicon-info-sign" style="margin-right:4px;"></span>
+              Click a room to focus. Use rename to edit.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Wall Textures -->
+      <div id="wallTextures" class="sidebar-section" style="display:none;">
+        <div class="panel">
+          <div class="panel-heading">
+            <span class="glyphicon glyphicon-unchecked" style="margin-right:6px; opacity:0.6;"></span>
+            Adjust Wall
+          </div>
+          <div class="panel-body">
+            <div class="texture-grid">
+              <a href="#" class="thumbnail texture-select-thumbnail" texture-url="rooms/textures/marbletiles.jpg"
+                texture-stretch="false" texture-scale="300">
+                <img alt="Marble tiles" src="rooms/thumbnails/thumbnail_marbletiles.jpg" />
+              </a>
+              <a href="#" class="thumbnail texture-select-thumbnail" texture-url="rooms/textures/wallmap_yellow.png"
+                texture-stretch="true" texture-scale="">
+                <img alt="Yellow wall" src="rooms/thumbnails/thumbnail_wallmap_yellow.png" />
+              </a>
+              <a href="#" class="thumbnail texture-select-thumbnail" texture-url="rooms/textures/light_brick.jpg"
+                texture-stretch="false" texture-scale="100">
+                <img alt="Light brick" src="rooms/thumbnails/thumbnail_light_brick.jpg" />
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="col-md-9 col-sm-8 col-xs-12 main">
+
+      <!-- 3D Viewer -->
+      <div id="viewer">
+        <!-- Top-left controls -->
+        <div id="main-controls">
+          <span class="btn-group">
+            <button class="btn btn-sm btn-default" id="auto-furnish-btn">
+              <span class="glyphicon glyphicon-flash"></span> AI Auto-Furnish
+            </button>
+          </span>
+        </div>
+
+        <!-- Bottom-right camera controls -->
+        <div id="camera-controls">
+          <div class="camera-zoom">
+            <a href="#" class="btn" id="zoom-in" title="Zoom In">
+              <span class="glyphicon glyphicon-plus"></span>
+            </a>
+            <a href="#" class="btn" id="reset-view" title="Reset View">
+              <span class="glyphicon glyphicon-home"></span>
+            </a>
+            <a href="#" class="btn" id="zoom-out" title="Zoom Out">
+              <span class="glyphicon glyphicon-minus"></span>
+            </a>
+          </div>
+          <div class="camera-pan">
+            <a class="btn" href="#" id="move-up" title="Pan Up">
+              <span class="glyphicon glyphicon-chevron-up"></span>
+            </a>
+            <a class="btn" href="#" id="move-left" title="Pan Left">
+              <span class="glyphicon glyphicon-chevron-left"></span>
+            </a>
+            <a class="btn" href="#" id="move-right" title="Pan Right">
+              <span class="glyphicon glyphicon-chevron-right"></span>
+            </a>
+            <a class="btn" href="#" id="move-down" title="Pan Down">
+              <span class="glyphicon glyphicon-chevron-down"></span>
+            </a>
+          </div>
+        </div>
+
+        <!-- Loading overlay -->
+        <div id="loading-modal">
+          <h1>Loading...</h1>
+        </div>
+      </div>
+
+      <!-- 2D Floorplanner -->
+      <div id="floorplanner">
+        <canvas id="floorplanner-canvas"></canvas>
+        <div id="floorplanner-controls">
+          <button id="move" class="btn btn-sm btn-default">
+            <span class="glyphicon glyphicon-move"></span>
+            Move
+          </button>
+          <button id="draw" class="btn btn-sm btn-default">
+            <span class="glyphicon glyphicon-pencil"></span>
+            Draw
+          </button>
+          <button id="delete" class="btn btn-sm btn-default">
+            <span class="glyphicon glyphicon-remove"></span>
+            Delete
+          </button>
+          <button id="place-door" class="btn btn-sm btn-default">
+            <span class="glyphicon glyphicon-log-in"></span>
+            Door
+          </button>
+          <button id="place-window" class="btn btn-sm btn-default">
+            <span class="glyphicon glyphicon-modal-window"></span>
+            Window
+          </button>
+          <button id="zoom-in-floorplan" class="btn btn-sm btn-default">
+            <span class="glyphicon glyphicon-zoom-in"></span>
+            Zoom In
+          </button>
+          <button id="zoom-out-floorplan" class="btn btn-sm btn-default">
+            <span class="glyphicon glyphicon-zoom-out"></span>
+            Zoom Out
+          </button>
+          <button type="button" id="export-floorplan-pdf" class="btn btn-sm btn-default"
+            title="Download this 2D floor plan as PDF">
+            <span class="glyphicon glyphicon-download-alt"></span>
+            Export PDF
+          </button>
+          <span class="pull-right">
+            <button class="btn btn-primary btn-sm" id="update-floorplan">
+              Done <span class="glyphicon glyphicon-chevron-right" style="margin-left:2px;"></span>
+            </button>
+          </span>
+        </div>
+        <div id="draw-walls-hint">
+          <span class="glyphicon glyphicon-info-sign" style="margin-right:6px;"></span>
+          Press "Esc" to stop drawing walls
+        </div>
+      </div>
+
+      <!-- Add Items -->
+      <div id="add-items">
+        <div style="margin-bottom:16px;">
+          <h3 style="font-size:18px; font-weight:700; margin:0 0 4px 0; color:var(--color-text);">Furniture Catalog</h3>
+          <p class="text-muted" style="font-size:12px; margin:0;">Click any item to add it to your design.</p>
+        </div>
+        <div id="items-wrapper">
+          <!-- Items added by items.js -->
+        </div>
+      </div>
+
+    </div>
+    <!-- End Main Content -->
+  </div>
+  <!-- End Main Layout -->
+
+</body>
+
 </html>

@@ -16,6 +16,7 @@ module BP3D.Items {
     private hover = false;
     private selected = false;
     private highlighted = false;
+    private selectionHelper: THREE.BoxHelper = null;
     private error = false;
     private emissiveColor = 0x444444;
     private errorColor = 0xff0000;
@@ -91,6 +92,9 @@ module BP3D.Items {
       if (scale != null) {
         this.setScale(scale.x, scale.y, scale.z);
       }
+
+      this.selectionHelper = new THREE.BoxHelper(this, 0x00ffff);
+      this.selectionHelper.visible = false;
     }
 
     public remove(): void {
@@ -111,6 +115,9 @@ module BP3D.Items {
       this.scale.set(scaleVec.x, scaleVec.y, scaleVec.z);
       this.resized();
       this.scene.needsUpdate = true;
+      if (this.selectionHelper) {
+        this.selectionHelper.update();
+      }
     }
 
     public setFixed(fixed: boolean): void {
@@ -136,6 +143,7 @@ module BP3D.Items {
 
     public initObject(): void {
       this.placeInRoom();
+      this.scene.add(this.selectionHelper);
       this.scene.needsUpdate = true;
     }
 
@@ -144,7 +152,9 @@ module BP3D.Items {
     }
 
     public removed(): void {
-      // optional override
+      if (this.selectionHelper) {
+        this.scene.remove(this.selectionHelper);
+      }
     }
 
     /** on is a bool */
@@ -160,6 +170,13 @@ module BP3D.Items {
         const m: any = materials[i];
         if (m.emissive && typeof m.emissive.setHex === "function") {
           m.emissive.setHex(hex);
+        }
+      }
+
+      if (this.selectionHelper) {
+        this.selectionHelper.visible = on;
+        if (on) {
+          this.selectionHelper.update();
         }
       }
     }
@@ -218,11 +235,17 @@ module BP3D.Items {
         }
 
         this.rotation.y = angle;
+        if (this.selectionHelper) {
+          this.selectionHelper.update();
+        }
       }
     }
 
     public moveToPosition(vec3: THREE.Vector3, _intersection?: any): void {
       this.position.copy(vec3);
+      if (this.selectionHelper) {
+        this.selectionHelper.update();
+      }
     }
 
     public clickReleased(): void {

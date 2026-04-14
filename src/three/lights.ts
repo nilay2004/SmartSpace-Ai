@@ -67,6 +67,11 @@ module BP3D.Three {
       }
     }
 
+    (this as any).updateFloorplan = function(newFloorplan: any) {
+      floorplan = newFloorplan;
+      updateShadowCamera();
+    };
+
     init();
   }
 }

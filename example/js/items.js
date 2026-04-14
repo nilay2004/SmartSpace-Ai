@@ -212,21 +212,29 @@ $(document).ready(function() {
       "model" : "models/js/gus-churchchair-whiteoak.js",
       "type" : "1",
       "category" : "Seating"
+    },
+    {
+      "name" : "Staircase",
+      "image" : "models/thumbnails/thumbnail_Church-Chair-oak-white_1024x1024.jpg",
+      "model" : null,
+      "type" : "10",
+      "category" : "Architecture"
     }
   ];
 
   var itemsDiv = $("#items-wrapper");
   for (var i = 0; i < items.length; i++) {
     var item = items[i];
-    var html = '<a class="add-item" model-name="' + 
-                item.name + 
+    var modelUrl = item.model ? item.model : null;
+    var html = '<a class="add-item" model-name="' +
+                item.name +
                 '" model-url="' +
-                item.model +
+                modelUrl +
                 '" model-type="' +
-                item.type + 
+                item.type +
                 '">' +
                 '<img src="' +
-                item.image + 
+                item.image +
                 '" alt="' + item.name + '" loading="lazy"> ' +
                 '<span class="item-name">' + item.name + '</span>' +
                 '</a>';

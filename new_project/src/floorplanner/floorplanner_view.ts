@@ -23,6 +23,8 @@ namespace BP3D.Floorplanner {
 
   // room config
   const roomColor = "#f9f9f9";
+  const roomLabelColor = "#111111";
+  const roomLabelHalo = "#ffffff";
 
   // wall config
   const wallWidth = 5;
@@ -206,6 +208,28 @@ namespace BP3D.Floorplanner {
         true,
         roomColor
       );
+
+      this.drawRoomLabel(room);
+    }
+
+    private drawRoomLabel(room: Model.Room) {
+      const centroid = room.getCentroid();
+      const x = this.viewmodel.convertX(centroid.x);
+      const y = this.viewmodel.convertY(centroid.y);
+      const areaText = Core.Dimensioning.cm2ToAreaMeasure(room.getAreaCm2());
+
+      this.context.save();
+      this.context.font = "600 13px Arial";
+      this.context.textAlign = "center";
+      this.context.textBaseline = "middle";
+      this.context.lineWidth = 5;
+      this.context.strokeStyle = roomLabelHalo;
+      this.context.fillStyle = roomLabelColor;
+
+      // Halo first, then fill for legibility on textures/edges.
+      this.context.strokeText(areaText, x, y);
+      this.context.fillText(areaText, x, y);
+      this.context.restore();
     }
 
     /** */
