@@ -1,6 +1,7 @@
 /// <reference path="../../lib/three.d.ts" />
 /// <reference path="../../lib/jquery.d.ts" />
 /// <reference path="../core/utils.ts" />
+/// <reference path="../core/assets.ts" />
 /// <reference path="../items/factory.ts" />
 
 module BP3D.Model {
@@ -114,10 +115,32 @@ module BP3D.Model {
      * @param rotation The initial rotation around the y axis.
      * @param scale The initial scaling.
      * @param fixed True if fixed.
+     * @param floor The floor to add the item to (optional, defaults to active floor).
      */
-    public addItem(itemType: Items.ItemType, fileName: string, metadata: Items.Metadata, position: THREE.Vector3, rotation: number, scale: THREE.Vector3, fixed: boolean) {
+    public addItem(itemType: Items.ItemType, fileName: string, metadata: Items.Metadata, position: THREE.Vector3, rotation: number, scale: THREE.Vector3, fixed: boolean, floor?: Model.Floor) {
       itemType = itemType || 1;
       var scope = this;
+
+      // Special handling for procedural items (no file to load)
+      if (itemType === 10 || !fileName || fileName === "null") {
+        var item = new (Items.Factory.getClass(itemType) as any)(
+          scope.model,
+          metadata, null, null,
+          position, rotation, scale
+        );
+        item.fixed = fixed || false;
+        scope.items.push(item);
+        scope.add(item);
+        item.initObject();
+        // Add to floor
+        var targetFloor = floor || scope.model.activeFloor;
+        if (targetFloor) {
+          targetFloor.addItem(item);
+        }
+        scope.itemLoadedCallbacks.fire(item);
+        return;
+      }
+
       var loaderCallback = function (geometry: THREE.Geometry, materials: THREE.Material[]) {
         var item = new (Items.Factory.getClass(itemType) as any)(
           scope.model,
@@ -129,14 +152,19 @@ module BP3D.Model {
         scope.items.push(item);
         scope.add(item);
         item.initObject();
+        // Add to floor
+        var targetFloor = floor || scope.model.activeFloor;
+        if (targetFloor) {
+          targetFloor.addItem(item);
+        }
         scope.itemLoadedCallbacks.fire(item);
       }
 
       this.itemLoadingCallbacks.fire();
       this.loader.load(
-        fileName,
+        Core.Assets.resolveAssetUrl(fileName),
         loaderCallback,
-        undefined // TODO_Ekki 
+        undefined // TODO_Ekki
       );
     }
   }

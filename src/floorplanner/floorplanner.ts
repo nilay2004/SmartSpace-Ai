@@ -1,88 +1,45 @@
 /// <reference path="../../lib/jquery.d.ts" />
-/// <reference path="../model/floorplan.ts" />
+/// <reference path="../model/model.ts" />
 /// <reference path="floorplanner_view.ts" />
 
 module BP3D.Floorplanner {
   /** how much will we move a corner to make a wall axis aligned (cm) */
   const snapTolerance = 25;
 
-  /**
-   * The Floorplanner implements an interactive tool for creation of floorplans.
-   */
   export class Floorplanner {
-
-    /** */
-    public mode = 0;
-
-    /** */
-    public activeWall: Model.Wall = null;
-
-    /** */
-    public activeCorner: Model.Corner = null;
-
-    /** */
-    public originX = 0;
-
-    /** */
-    public originY = 0;
-
-    /** drawing state */
-    public targetX = 0;
-
-    /** drawing state */
-    public targetY = 0;
-
-    /** drawing state */
-    public lastNode: Model.Corner = null;
-
-    /** */
-    private wallWidth: number;
-
-    /** */
-    private modeResetCallbacks = $.Callbacks();
-
-    /** */
-    private canvasElement: JQuery;
-
-    /** */
+    private canvasElement: any;
     private view: FloorplannerView;
+    public mode: number;
+    public activeCorner: Model.Corner;
+    public activeWall: Model.Wall;
+    public lastNode: Model.Corner;
+    private mouseDown: boolean;
+    private mouseMoved: boolean;
+    private rawMouseX: number;
+    private rawMouseY: number;
+    private mouseX: number;
+    private mouseY: number;
+    public targetX: number;
+    public targetY: number;
+    private lastX: number;
+    private lastY: number;
+    public originX: number;
+    public originY: number;
+    public cmPerPixel: number;
+    public pixelsPerCm: number;
+    public wallWidth: number;
+    public modeResetCallbacks: any;
+    public zoom: number = 1.0;
 
-    /** */
-    private mouseDown = false;
-
-    /** */
-    private mouseMoved = false;
-
-    /** in ThreeJS coords */
-    private mouseX = 0;
-
-    /** in ThreeJS coords */
-    private mouseY = 0;
-
-    /** in ThreeJS coords */
-    private rawMouseX = 0;
-
-    /** in ThreeJS coords */
-    private rawMouseY = 0;
-
-    /** mouse position at last click */
-    private lastX = 0;
-
-    /** mouse position at last click */
-    private lastY = 0;
-
-    /** */
-    private cmPerPixel: number;
-
-    /** */
-    private pixelsPerCm: number;
-
-    /** */
-    constructor(canvas: string, private floorplan: Model.Floorplan) {
+    /**
+     * @param canvas The associated canvas.
+     * @param model The associated model.
+     */
+    constructor(canvas: string, private model: Model.Model) {
 
       this.canvasElement = $("#" + canvas);
 
-      this.view = new FloorplannerView(this.floorplan, this, canvas);
+      this.view = new FloorplannerView(this.model, this, canvas);
 
       const cmPerFoot = 30.48;
       const pixelsPerFoot = 15.0;
@@ -90,6 +47,11 @@ module BP3D.Floorplanner {
       this.pixelsPerCm = 1.0 / this.cmPerPixel;
 
       this.wallWidth = 10.0 * this.pixelsPerCm;
+
+      // Listen to active floor changes
+      this.model.activeFloorChangedCallbacks.add(() => {
+        this.view.draw();
+      });
 
       // Initialization:
 
@@ -109,6 +71,9 @@ module BP3D.Floorplanner {
       this.canvasElement.mouseleave(() => {
         scope.mouseleave();
       });
+      this.canvasElement.on('mousewheel DOMMouseScroll', (event: any) => {
+        scope.mousewheel(event);
+      });
 
       $(document).keyup((e) => {
         if (e.keyCode == 27) {
@@ -116,7 +81,7 @@ module BP3D.Floorplanner {
         }
       });
 
-      floorplan.roomLoadedCallbacks.add(() => {
+      this.model.activeFloor.floorplan.roomLoadedCallbacks.add(() => {
         scope.reset();
       });
     }
@@ -175,10 +140,10 @@ module BP3D.Floorplanner {
       this.rawMouseY = event.clientY;
 
       this.mouseX =
-        (event.clientX - this.canvasElement.offset().left) * this.cmPerPixel +
+        (event.clientX - this.canvasElement.offset().left) / (this.pixelsPerCm * this.zoom) +
         this.originX * this.cmPerPixel;
       this.mouseY =
-        (event.clientY - this.canvasElement.offset().top) * this.cmPerPixel +
+        (event.clientY - this.canvasElement.offset().top) / (this.pixelsPerCm * this.zoom) +
         this.originY * this.cmPerPixel;
 
       // update target (snapped position of actual mouse)
@@ -191,8 +156,8 @@ module BP3D.Floorplanner {
 
       // update object target
       if (this.mode != floorplannerModes.DRAW && !this.mouseDown) {
-        const hoverCorner = this.floorplan.overlappedCorner(this.mouseX, this.mouseY);
-        const hoverWall = this.floorplan.overlappedWall(this.mouseX, this.mouseY);
+        const hoverCorner = this.model.activeFloor.floorplan.overlappedCorner(this.mouseX, this.mouseY);
+        const hoverWall = this.model.activeFloor.floorplan.overlappedWall(this.mouseX, this.mouseY);
         let draw = false;
         if (hoverCorner != this.activeCorner) {
           this.activeCorner = hoverCorner;
@@ -214,8 +179,8 @@ module BP3D.Floorplanner {
 
       // panning
       if (this.mouseDown && !this.activeCorner && !this.activeWall) {
-        this.originX += this.lastX - this.rawMouseX;
-        this.originY += this.lastY - this.rawMouseY;
+        this.originX += (this.lastX - this.rawMouseX) * this.cmPerPixel / this.zoom;
+        this.originY += (this.lastY - this.rawMouseY) * this.cmPerPixel / this.zoom;
         this.lastX = this.rawMouseX;
         this.lastY = this.rawMouseY;
         this.view.draw();
@@ -228,8 +193,8 @@ module BP3D.Floorplanner {
           this.activeCorner.snapToAxis(snapTolerance);
         } else if (this.activeWall) {
           this.activeWall.relativeMove(
-            (this.rawMouseX - this.lastX) * this.cmPerPixel,
-            (this.rawMouseY - this.lastY) * this.cmPerPixel
+            (this.rawMouseX - this.lastX) * this.cmPerPixel / this.zoom,
+            (this.rawMouseY - this.lastY) * this.cmPerPixel / this.zoom
           );
           this.activeWall.snapToAxis(snapTolerance);
           this.lastX = this.rawMouseX;
@@ -245,9 +210,9 @@ module BP3D.Floorplanner {
 
       // drawing
       if (this.mode == floorplannerModes.DRAW && !this.mouseMoved) {
-        const corner = this.floorplan.newCorner(this.targetX, this.targetY);
+        const corner = this.model.activeFloor.floorplan.newCorner(this.targetX, this.targetY);
         if (this.lastNode != null) {
-          this.floorplan.newWall(this.lastNode, corner);
+          this.model.activeFloor.floorplan.newWall(this.lastNode, corner);
         }
         if (corner.mergeWithIntersected() && this.lastNode != null) {
           this.setMode(floorplannerModes.MOVE);
@@ -259,6 +224,31 @@ module BP3D.Floorplanner {
     /** */
     private mouseleave() {
       this.mouseDown = false;
+    }
+
+    /** */
+    private mousewheel(event: any) {
+      event.preventDefault();
+      const delta = event.originalEvent.wheelDelta || -event.originalEvent.detail;
+      if (delta > 0) {
+        this.zoomIn();
+      } else {
+        this.zoomOut();
+      }
+    }
+
+    /** Zoom in. */
+    public zoomIn() {
+      this.zoom *= 1.1;
+      this.zoom = Math.min(10, this.zoom);
+      this.view.draw();
+    }
+
+    /** Zoom out. */
+    public zoomOut() {
+      this.zoom /= 1.1;
+      this.zoom = Math.max(0.01, this.zoom);
+      this.view.draw();
     }
 
     /** */
@@ -286,19 +276,19 @@ module BP3D.Floorplanner {
     private resetOrigin() {
       const centerX = this.canvasElement.innerWidth() / 2.0;
       const centerY = this.canvasElement.innerHeight() / 2.0;
-      const centerFloorplan = this.floorplan.getCenter();
+      const centerFloorplan = this.model.activeFloor.floorplan.getCenter();
       this.originX = centerFloorplan.x * this.pixelsPerCm - centerX;
       this.originY = centerFloorplan.z * this.pixelsPerCm - centerY;
     }
 
     /** Convert from THREEjs coords to canvas coords. */
     public convertX(x: number): number {
-      return (x - this.originX * this.cmPerPixel) * this.pixelsPerCm;
+      return (x - this.originX * this.cmPerPixel) * this.pixelsPerCm * this.zoom;
     }
 
     /** Convert from THREEjs coords to canvas coords. */
     public convertY(y: number): number {
-      return (y - this.originY * this.cmPerPixel) * this.pixelsPerCm;
+      return (y - this.originY * this.cmPerPixel) * this.pixelsPerCm * this.zoom;
     }
   }
 }

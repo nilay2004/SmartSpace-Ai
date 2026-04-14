@@ -109,7 +109,7 @@ module BP3D.Three {
 
     private checkWallsAndFloors(event?: any) {
       if (this.state == this.states.UNSELECTED && this.mouseoverObject == null) {
-        var wallEdgePlanes = this.model.floorplan.wallEdgePlanes();
+        var wallEdgePlanes = this.model.activeFloor.floorplan.wallEdgePlanes();
         var wallIntersects = this.getIntersections(
           this.mouse, wallEdgePlanes, true);
         if (wallIntersects.length > 0) {
@@ -118,7 +118,7 @@ module BP3D.Three {
           return;
         }
 
-        var floorPlanes = this.model.floorplan.floorPlanes();
+        var floorPlanes = this.model.activeFloor.floorplan.floorPlanes();
         if (floorPlanes) {
           var floorIntersects = this.getIntersections(
             this.mouse, floorPlanes, false);

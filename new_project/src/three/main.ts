@@ -150,6 +150,10 @@ module BP3D.Three {
       return this.camera;
     }
 
+    public getRenderer() {
+      return this.renderer;
+    }
+
     public setNeedsUpdate() {
       this.needsUpdate = true;
     }

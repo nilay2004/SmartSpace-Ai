@@ -36,5 +36,28 @@ namespace BP3D.Core {
           return "" + Math.round(10 * cm) / 1000 + " m";
       }
     }
+
+    /** Converts cm^2 to area string (m² / cm² / mm² / ft² depending on unit setting). */
+    public static cm2ToAreaMeasure(cm2: number): string {
+      const unit = Core.Configuration.getStringValue(Core.configDimUnit);
+      switch (unit) {
+        case dimInch: {
+          const ft2 = cm2 / (30.48 * 30.48);
+          return `${Math.round(ft2 * 100) / 100} ft²`;
+        }
+        case dimMilliMeter: {
+          const mm2 = cm2 * 100;
+          return `${Math.round(mm2)} mm²`;
+        }
+        case dimCentiMeter: {
+          return `${Math.round(cm2 * 10) / 10} cm²`;
+        }
+        case dimMeter:
+        default: {
+          const m2 = cm2 / 10000;
+          return `${Math.round(m2 * 100) / 100} m²`;
+        }
+      }
+    }
   }
 }

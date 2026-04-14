@@ -49,6 +49,50 @@ module BP3D.Model {
       this.generatePlane();
     }
 
+    /** Room area in cm^2, based on interior polygon. */
+    public getAreaCm2(): number {
+      const pts = this.interiorCorners;
+      if (!pts || pts.length < 3) return 0;
+      let sum = 0;
+      for (let i = 0; i < pts.length; i++) {
+        const a = pts[i];
+        const b = pts[(i + 1) % pts.length];
+        sum += a.x * b.y - b.x * a.y;
+      }
+      return Math.abs(sum) * 0.5;
+    }
+
+    /** Centroid in cm, based on interior polygon. */
+    public getCentroid(): { x: number; y: number } {
+      const pts = this.interiorCorners;
+      if (!pts || pts.length < 3) {
+        // fallback: average corners
+        const base = this.corners;
+        if (!base || base.length === 0) return { x: 0, y: 0 };
+        let x = 0, y = 0;
+        for (let i = 0; i < base.length; i++) {
+          x += base[i].x;
+          y += base[i].y;
+        }
+        return { x: x / base.length, y: y / base.length };
+      }
+
+      let a2 = 0; // 2 * area signed
+      let cx = 0;
+      let cy = 0;
+      for (let i = 0; i < pts.length; i++) {
+        const p = pts[i];
+        const q = pts[(i + 1) % pts.length];
+        const cross = p.x * q.y - q.x * p.y;
+        a2 += cross;
+        cx += (p.x + q.x) * cross;
+        cy += (p.y + q.y) * cross;
+      }
+      if (Math.abs(a2) < 1e-9) return { x: pts[0].x, y: pts[0].y };
+      const inv = 1 / (3 * a2);
+      return { x: cx * inv, y: cy * inv };
+    }
+
     public getUuid(): string {
       var cornerUuids = Core.Utils.map(this.corners, function (c) {
         return c.id;

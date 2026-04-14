@@ -10,7 +10,7 @@ module BP3D.Three {
     var topColor = 0xffffff;//0xD8ECF9
     var bottomColor = 0xe9e9e9; //0xf9f9f9;//0x565e63
     var verticalOffset = 500
-    var sphereRadius = 4000
+    var sphereRadius = 10000
     var widthSegments = 32
     var heightSegments = 15
 

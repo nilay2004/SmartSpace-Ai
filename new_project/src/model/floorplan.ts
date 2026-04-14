@@ -9,6 +9,7 @@
 module BP3D.Model {
   /** */
   const defaultFloorPlanTolerance = 10.0;
+  const floorplanSchemaVersion = 2;
 
   /** 
    * A Floorplan represents a number of Walls, Corners and Rooms.
@@ -46,6 +47,12 @@ module BP3D.Model {
     * url and scale attributes.
     */
     private floorTextures: {[key: string]: {url: string, scale: number}} = {};
+
+    /**
+     * Room metadata keyed by Room UUID.
+     * UUID is derived from the room's corner ids, so it remains stable as long as the loop is the same.
+     */
+    private roomMetas: { [key: string]: { name?: string } } = {};
 
     /** Constructs a floorplan. */
     constructor() {
@@ -195,11 +202,13 @@ module BP3D.Model {
 
     public saveFloorplan() {
       var floorplan: any = {
+        schemaVersion: floorplanSchemaVersion,
         corners: {},
         walls: [],
         wallTextures: [],
         floorTextures: {},
-        newFloorTextures: {}
+        newFloorTextures: {},
+        roomMetas: {}
       }
 
       this.corners.forEach((corner) => {
@@ -218,6 +227,7 @@ module BP3D.Model {
         });
       });
       floorplan.newFloorTextures = this.floorTextures;
+      floorplan.roomMetas = this.roomMetas;
       return floorplan;
     }
 
@@ -228,6 +238,7 @@ module BP3D.Model {
       if (floorplan == null || !('corners' in floorplan) || !('walls' in floorplan)) {
         return
       }
+      const schemaVersion: number = (typeof floorplan.schemaVersion === 'number') ? floorplan.schemaVersion : 1;
       for (var id in floorplan.corners) {
         var corner = floorplan.corners[id];
         corners[id] = this.newCorner(corner.x, corner.y, id);
@@ -246,6 +257,13 @@ module BP3D.Model {
 
       if ('newFloorTextures' in floorplan) {
         this.floorTextures = floorplan.newFloorTextures;
+      }
+
+      // room metas (v2+). For v1 files, start empty.
+      if (schemaVersion >= 2 && floorplan.roomMetas && typeof floorplan.roomMetas === 'object') {
+        this.roomMetas = floorplan.roomMetas;
+      } else {
+        this.roomMetas = {};
       }
 
       this.update();
@@ -267,6 +285,17 @@ module BP3D.Model {
       }
     }
 
+    public getRoomMeta(uuid: string) {
+      return (uuid in this.roomMetas) ? this.roomMetas[uuid] : null;
+    }
+
+    public setRoomMeta(uuid: string, meta: { name?: string }) {
+      this.roomMetas[uuid] = {
+        ...(this.roomMetas[uuid] || {}),
+        ...(meta || {})
+      };
+    }
+
     /** clear out obsolete floor textures */
     private updateFloorTextures() {
       var uuids = Core.Utils.map(this.rooms, function (room: Room) {
@@ -275,6 +304,18 @@ module BP3D.Model {
       for (var uuid in this.floorTextures) {
         if (!Core.Utils.hasValue(uuids, uuid)) {
           delete this.floorTextures[uuid]
+        }
+      }
+    }
+
+    /** clear out obsolete room metas */
+    private updateRoomMetas() {
+      var uuids = Core.Utils.map(this.rooms, function (room: Room) {
+        return room.getUuid();
+      });
+      for (var uuid in this.roomMetas) {
+        if (!Core.Utils.hasValue(uuids, uuid)) {
+          delete this.roomMetas[uuid];
         }
       }
     }
@@ -310,6 +351,7 @@ module BP3D.Model {
       this.assignOrphanEdges();
 
       this.updateFloorTextures();
+      this.updateRoomMetas();
       this.updated_rooms.fire();
     }
 

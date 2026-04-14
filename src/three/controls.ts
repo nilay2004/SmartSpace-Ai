@@ -21,7 +21,7 @@ module BP3D.Three {
     public noZoom = false;
     public zoomSpeed = 1.0;
     public minDistance = 0;
-    public maxDistance = 1500;
+    public maxDistance = 8000;
     public noRotate = false;
     public rotateSpeed = 1.0;
     public noPan = false;

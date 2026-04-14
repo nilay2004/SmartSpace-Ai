@@ -2,7 +2,7 @@
 /// <reference path="../core/configuration.ts" />
 /// <reference path="../core/dimensioning.ts" />
 /// <reference path="../core/utils.ts" />
-/// <reference path="../model/floorplan.ts" />
+/// <reference path="../model/model.ts" />
 /// <reference path="../model/half_edge.ts" />
 /// <reference path="../model/model.ts" />
 /// <reference path="../model/wall.ts" />
@@ -23,6 +23,8 @@ namespace BP3D.Floorplanner {
 
   // room config
   const roomColor = "#f9f9f9";
+  const roomLabelColor = "#111111";
+  const roomLabelHalo = "#ffffff";
 
   // wall config
   const wallWidth = 5;
@@ -53,7 +55,7 @@ namespace BP3D.Floorplanner {
     private context: CanvasRenderingContext2D;
 
     /** */
-    constructor(private floorplan: Model.Floorplan, private viewmodel: Floorplanner, private canvas: string) {
+    constructor(private model: Model.Model, private viewmodel: Floorplanner, private canvas: string) {
       this.canvasElement = document.getElementById(canvas) as HTMLCanvasElement;
       // Ensure non-null 2D context
       this.context = this.canvasElement.getContext('2d') as CanvasRenderingContext2D;
@@ -82,15 +84,15 @@ namespace BP3D.Floorplanner {
 
       this.drawGrid();
 
-      this.floorplan.getRooms().forEach((room) => {
+      this.model.activeFloor.floorplan.getRooms().forEach((room) => {
         this.drawRoom(room);
       })
 
-      this.floorplan.getWalls().forEach((wall) => {
+      this.model.activeFloor.floorplan.getWalls().forEach((wall) => {
         this.drawWall(wall);
       });
 
-      this.floorplan.getCorners().forEach((corner) => {
+      this.model.activeFloor.floorplan.getCorners().forEach((corner) => {
         this.drawCorner(corner);
       });
 
@@ -98,7 +100,7 @@ namespace BP3D.Floorplanner {
         this.drawTarget(this.viewmodel.targetX, this.viewmodel.targetY, this.viewmodel.lastNode);
       }
 
-      this.floorplan.getWalls().forEach((wall) => {
+      this.model.activeFloor.floorplan.getWalls().forEach((wall) => {
         this.drawWallLabels(wall);
       });
     }
@@ -209,6 +211,27 @@ namespace BP3D.Floorplanner {
         "",
         0
       );
+
+      this.drawRoomLabel(room);
+    }
+
+    private drawRoomLabel(room: Model.Room) {
+      const centroid = room.getCentroid();
+      const x = this.viewmodel.convertX(centroid.x);
+      const y = this.viewmodel.convertY(centroid.y);
+      const areaText = Core.Dimensioning.cm2ToAreaMeasure(room.getAreaCm2());
+
+      this.context.save();
+      this.context.font = "600 13px Arial";
+      this.context.textAlign = "center";
+      this.context.textBaseline = "middle";
+      this.context.lineWidth = 5;
+      this.context.strokeStyle = roomLabelHalo;
+      this.context.fillStyle = roomLabelColor;
+
+      this.context.strokeText(areaText, x, y);
+      this.context.fillText(areaText, x, y);
+      this.context.restore();
     }
 
     /** */
@@ -237,14 +260,14 @@ namespace BP3D.Floorplanner {
         cornerColorHover
       );
       if (lastNode) {
-        this.drawLine(
-          this.viewmodel.convertX(lastNode.x),
-          this.viewmodel.convertY(lastNode.y),
-          this.viewmodel.convertX(x),
-          this.viewmodel.convertY(y),
-          wallWidthHover,
-          wallColorHover
-        );
+      this.drawLine(
+        this.viewmodel.convertX(lastNode.x),
+        this.viewmodel.convertY(lastNode.y),
+        this.viewmodel.convertX(x),
+        this.viewmodel.convertY(y),
+        wallWidthHover,
+        wallColorHover
+      );
       }
     }
 

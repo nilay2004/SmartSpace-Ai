@@ -53,8 +53,7 @@ namespace BP3D.Items {
      * @returns The wall edge.
      */
     public closestWallEdge(): Model.HalfEdge | null {
-
-      var wallEdges = this.model.floorplan.wallEdges();
+      var wallEdges = this.model.activeFloor.floorplan.wallEdges();
 
       var wallEdge: Model.HalfEdge | null = null;
       var minDistance: number | null = null;
@@ -191,7 +190,7 @@ namespace BP3D.Items {
     /** Returns an array of planes to use other than the ground plane
      * for passing intersection to clickPressed and clickDragged */
     public customIntersectionPlanes(): THREE.Object3D[] {
-      return this.model.floorplan.wallEdgePlanes() as THREE.Object3D[];
+      return this.model.activeFloor.floorplan.wallEdgePlanes() as THREE.Object3D[];
     }
 
     /** takes the move vec3, and makes sure object stays bounded on plane */

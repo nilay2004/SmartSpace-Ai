@@ -1,5 +1,6 @@
 /// <reference path="../../lib/three.d.ts" />
 /// <reference path="../core/utils.ts" />
+/// <reference path="../core/assets.ts" />
 /// <reference path="../model/room.ts" />
 
 module BP3D.Three {
@@ -8,10 +9,12 @@ module BP3D.Three {
     private scene: THREE.Scene;
     private floorPlane: THREE.Mesh | null = null;
     private roofPlane: THREE.Mesh | null = null;
+    private heightOffset: number = 0;
 
-    constructor(scene: THREE.Scene, room: Model.Room) {
+    constructor(scene: THREE.Scene, room: Model.Room, heightOffset: number = 0) {
       this.room = room;
       this.scene = scene;
+      this.heightOffset = heightOffset;
       this.init();
     }
 
@@ -33,7 +36,7 @@ module BP3D.Three {
       // setup texture
       var loader = new THREE.TextureLoader();
       loader.setCrossOrigin("anonymous");
-      var floorTexture = loader.load(textureSettings.url);
+      var floorTexture = loader.load(Core.Assets.resolveAssetUrl(textureSettings.url));
       floorTexture.wrapS = THREE.RepeatWrapping;
       floorTexture.wrapT = THREE.RepeatWrapping;
       floorTexture.repeat.set(1, 1);
@@ -59,13 +62,14 @@ module BP3D.Three {
 
       var geometry = new THREE.ShapeGeometry(shape);
 
-      var floor = new THREE.Mesh(geometry, floorMaterialTop);
+       var floor = new THREE.Mesh(geometry, floorMaterialTop);
 
-      floor.rotation.set(Math.PI / 2, 0, 0);
-      floor.scale.set(textureScale, textureScale, textureScale);
-      floor.receiveShadow = true;
-      floor.castShadow = false;
-      return floor;
+       floor.rotation.set(Math.PI / 2, 0, 0);
+       floor.position.y = this.heightOffset;
+       floor.scale.set(textureScale, textureScale, textureScale);
+       floor.receiveShadow = true;
+       floor.castShadow = false;
+       return floor;
     }
 
     private buildRoof(): THREE.Mesh {

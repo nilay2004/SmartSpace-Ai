@@ -1,96 +1,1572 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
-    <link rel="stylesheet" href="style.css">
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Smart Space — Real Estate & Interior Design</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+<style>
+/* ═══════════════════════════════
+   RESET & VARIABLES
+═══════════════════════════════ */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --ink:#0e0e0e;--cream:#f5f0e8;--gold:#c9a96e;
+  --gold-lt:#e8d5b0;--mist:#d6cfc4;--deep:#1a1712;--mid:#3a352e;
+  --serif:'Cormorant Garamond',Georgia,serif;--sans:'DM Sans',sans-serif;
+  --E:cubic-bezier(0.16,1,0.3,1);--Q:cubic-bezier(0.25,1,0.5,1);
+}
+html{scroll-behavior:smooth}
+body{background:var(--cream);color:var(--ink);font-family:var(--sans);font-weight:300;overflow-x:hidden}
+ul{list-style:none}a{text-decoration:none;color:inherit}img{display:block;max-width:100%}button{font-family:var(--sans)}
+
+/* ═══════════════════════════════
+   SCROLL PROGRESS BAR
+═══════════════════════════════ */
+#spb{
+  position:fixed;top:0;left:0;height:2px;width:0%;z-index:9999;
+  background:linear-gradient(90deg,var(--gold),var(--gold-lt),var(--gold));
+  background-size:200%;
+  animation:spbShine 2s linear infinite;
+  transition:width .1s linear;
+  pointer-events:none;
+}
+@keyframes spbShine{0%{background-position:0%}100%{background-position:200%}}
+
+/* ═══════════════════════════════
+   LOADER
+═══════════════════════════════ */
+#loader{
+  position:fixed;inset:0;z-index:9000;
+  background:var(--deep);
+  display:flex;align-items:center;justify-content:center;flex-direction:column;gap:28px;
+  transition:opacity .8s var(--E),visibility .8s;
+}
+#loader.out{opacity:0;visibility:hidden;pointer-events:none}
+.ld-logo{
+  font-family:var(--serif);font-size:3rem;font-weight:300;color:var(--cream);letter-spacing:.14em;
+  opacity:0;transform:translateY(24px);
+  animation:fup .9s .15s var(--E) forwards;
+}
+.ld-logo span{color:var(--gold)}
+.ld-tagline{
+  font-size:.68rem;letter-spacing:.3em;text-transform:uppercase;color:#3a3530;
+  opacity:0;animation:fup .7s .4s var(--E) forwards;
+}
+.ld-track{width:240px;height:1px;background:rgba(255,255,255,.08);overflow:hidden;position:relative}
+.ld-fill{height:100%;width:0%;background:linear-gradient(90deg,var(--gold),var(--gold-lt));transition:width .05s linear}
+.ld-nums{display:flex;justify-content:space-between;margin-top:8px;font-size:.65rem;letter-spacing:.2em;color:#3a3530;opacity:0;animation:fup .5s .5s forwards}
+@keyframes fup{to{opacity:1;transform:translateY(0)}}
+
+/* ═══════════════════════════════
+   PAGE WIPE TRANSITION
+═══════════════════════════════ */
+#wipe{
+  position:fixed;inset:0;z-index:4000;pointer-events:none;
+  background:var(--deep);
+  transform:scaleY(0);transform-origin:bottom;
+  transition:transform .55s var(--E);
+}
+#wipe.down{transform:scaleY(1);transform-origin:bottom}
+#wipe.up{transform:scaleY(0);transform-origin:top}
+
+/* ═══════════════════════════════
+   CURSOR
+═══════════════════════════════ */
+#cur{width:7px;height:7px;border-radius:50%;background:var(--gold);position:fixed;top:0;left:0;pointer-events:none;z-index:8999;mix-blend-mode:difference}
+#curR{
+  width:30px;height:30px;border-radius:50%;border:1.5px solid var(--gold);
+  position:fixed;top:0;left:0;pointer-events:none;z-index:8998;
+  opacity:.5;
+  transition:width .5s var(--E),height .5s var(--E),opacity .4s,border-color .4s,background .4s;
+}
+#curR.hover{width:56px;height:56px;opacity:.8;border-color:var(--gold-lt);background:rgba(201,169,110,.05)}
+#curR.click{width:18px;height:18px;opacity:1;background:var(--gold)}
+
+/* ═══════════════════════════════
+   HEADER
+═══════════════════════════════ */
+header{
+  position:fixed;top:0;left:0;width:100%;z-index:500;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:26px 60px;
+  background:transparent;
+  backdrop-filter:blur(0px);
+  border-bottom:1px solid transparent;
+  transition:padding .4s var(--E),background .5s,backdrop-filter .5s,border-color .5s;
+  transform:translateY(-110%);
+  animation:slideDown .9s 2.1s var(--E) forwards;
+}
+@keyframes slideDown{to{transform:translateY(0)}}
+header.stuck{
+  background:rgba(14,14,14,.88);
+  backdrop-filter:blur(20px);
+  padding:16px 60px;
+  border-bottom-color:rgba(201,169,110,.1);
+}
+.logo{font-family:var(--serif);font-size:1.5rem;font-weight:600;letter-spacing:.08em;color:var(--cream);cursor:pointer;transition:opacity .3s}
+.logo:hover{opacity:.7}
+.logo span{color:var(--gold)}
+nav ul{display:flex;gap:40px}
+nav a{font-size:.76rem;letter-spacing:.18em;text-transform:uppercase;color:var(--mist);cursor:pointer;position:relative;transition:color .35s;padding:4px 0;display:block}
+nav a::after{content:'';position:absolute;bottom:-1px;left:0;width:0;height:1px;background:var(--gold);transition:width .45s var(--Q)}
+nav a:hover,nav a.on{color:var(--cream)}
+nav a:hover::after,nav a.on::after{width:100%}
+
+/* ═══════════════════════════════
+   PAGE SYSTEM
+═══════════════════════════════ */
+.page{display:none;min-height:100vh}
+.page.active{display:block}
+
+/* ═══════════════════════════════
+   SCROLL REVEAL CLASSES
+═══════════════════════════════ */
+.rv{opacity:0;transform:translateY(48px);transition:opacity .95s var(--E),transform .95s var(--E)}
+.rv.show{opacity:1;transform:none}
+.rvL{opacity:0;transform:translateX(-48px);transition:opacity .95s var(--E),transform .95s var(--E)}
+.rvL.show{opacity:1;transform:none}
+.rvR{opacity:0;transform:translateX(48px);transition:opacity .95s var(--E),transform .95s var(--E)}
+.rvR.show{opacity:1;transform:none}
+.rvS{opacity:0;transform:scale(.88);transition:opacity .95s var(--E),transform .95s var(--E)}
+.rvS.show{opacity:1;transform:none}
+/* stagger delays */
+.d1{transition-delay:.1s!important}
+.d2{transition-delay:.2s!important}
+.d3{transition-delay:.3s!important}
+.d4{transition-delay:.4s!important}
+.d5{transition-delay:.5s!important}
+.d6{transition-delay:.6s!important}
+
+/* ═══════════════════════════════
+   WORD-SPLIT ANIMATION
+═══════════════════════════════ */
+.split-word{display:inline-block;overflow:hidden;vertical-align:top}
+.split-word .inner{
+  display:inline-block;
+  transform:translateY(105%);
+  transition:transform .85s var(--E);
+}
+.split-word.show .inner{transform:translateY(0)}
+
+/* ═══════════════════════════════
+   SHARED COMPONENTS
+═══════════════════════════════ */
+.lbl{
+  font-size:.69rem;letter-spacing:.28em;text-transform:uppercase;color:var(--gold);
+  margin-bottom:14px;display:flex;align-items:center;gap:12px;
+}
+.lbl::before{content:'';width:26px;height:1px;background:var(--gold);flex-shrink:0}
+.ttl{font-family:var(--serif);font-size:clamp(2rem,3.5vw,3rem);font-weight:300;color:var(--ink);line-height:1.15}
+.ttl em{font-style:italic}
+
+/* ── BUTTONS ── */
+.bp,.bo,.bg{
+  display:inline-flex;align-items:center;gap:10px;
+  cursor:pointer;position:relative;overflow:hidden;
+  font-family:var(--sans);font-size:.77rem;letter-spacing:.15em;text-transform:uppercase;
+  transition:transform .35s var(--Q),box-shadow .35s;
+  border:none;
+}
+.bp{padding:14px 36px;background:var(--gold);color:var(--deep);font-weight:500}
+.bo{padding:14px 36px;background:transparent;color:var(--ink);border:1px solid var(--ink)}
+.bg{padding:13px 28px;background:none;color:var(--gold);border:1px solid rgba(201,169,110,.4)}
+/* swipe fills */
+.bp::before{content:'';position:absolute;inset:0;background:var(--ink);transform:translateX(-102%);transition:transform .5s var(--E)}
+.bo::before{content:'';position:absolute;inset:0;background:var(--ink);transform:translateY(102%);transition:transform .5s var(--E)}
+.bg::before{content:'';position:absolute;inset:0;background:rgba(201,169,110,.1);transform:scaleX(0);transform-origin:left;transition:transform .5s var(--E)}
+.bp:hover::before,.bo:hover::before,.bg:hover::before{transform:none}
+.bp:hover{color:var(--cream);transform:translateY(-3px);box-shadow:0 16px 40px rgba(0,0,0,.25)}
+.bo:hover{color:var(--cream);transform:translateY(-3px)}
+.bg:hover{transform:translateY(-3px)}
+.bp>*,.bo>*,.bg>*{position:relative;z-index:1}
+.arr{display:inline-block;transition:transform .45s var(--E)}
+.bp:hover .arr,.bo:hover .arr,.bg:hover .arr{transform:translateX(7px)}
+
+/* ripple */
+.ripple{position:absolute;border-radius:50%;background:rgba(255,255,255,.25);transform:scale(0);animation:rip .6s linear;pointer-events:none}
+@keyframes rip{to{transform:scale(4);opacity:0}}
+
+.bsm{
+  padding:10px 22px;border:1px solid var(--ink);background:none;
+  font-size:.71rem;letter-spacing:.15em;text-transform:uppercase;color:var(--ink);
+  cursor:pointer;position:relative;overflow:hidden;transition:color .4s;font-family:var(--sans);
+}
+.bsm::before{content:'';position:absolute;inset:0;background:var(--ink);transform:translateY(102%);transition:transform .5s var(--E)}
+.bsm:hover::before{transform:none}
+.bsm:hover{color:var(--cream)}
+.bsm span{position:relative;z-index:1}
+
+/* ═══════════════════════════════
+   PAGE HERO (shared)
+═══════════════════════════════ */
+.ph{
+  padding-top:100px;height:62vh;min-height:440px;
+  background:var(--deep);display:flex;align-items:flex-end;
+  padding-left:60px;padding-bottom:80px;
+  position:relative;overflow:hidden;
+}
+.ph-cv{position:absolute;inset:0;z-index:0;pointer-events:none}
+.ph::after{
+  content:'';position:absolute;bottom:0;left:0;width:100%;height:2px;
+  background:linear-gradient(90deg,transparent,var(--gold),transparent);
+  animation:shimmer 3s ease-in-out infinite;
+}
+@keyframes shimmer{0%,100%{opacity:.3}50%{opacity:1}}
+.ph-orb{
+  position:absolute;right:6%;top:8%;width:520px;height:520px;border-radius:50%;
+  background:radial-gradient(circle,rgba(201,169,110,.07) 0%,transparent 65%);
+  pointer-events:none;
+  animation:orbFloat 9s ease-in-out infinite;
+}
+/* secondary ring */
+.ph-orb::after{
+  content:'';position:absolute;inset:-40px;border-radius:50%;
+  border:1px solid rgba(201,169,110,.06);
+  animation:orbFloat 12s ease-in-out infinite reverse;
+}
+@keyframes orbFloat{0%,100%{transform:translateY(0) scale(1) rotate(0deg)}50%{transform:translateY(-32px) scale(1.07) rotate(3deg)}}
+
+.ph-in{position:relative;z-index:2}
+.ph-lbl{
+  font-size:.7rem;letter-spacing:.3em;text-transform:uppercase;color:var(--gold);
+  margin-bottom:18px;opacity:0;
+  animation:fup .7s .45s var(--E) forwards;
+  display:flex;align-items:center;gap:12px;
+}
+.ph-lbl::before{content:'';width:26px;height:1px;background:var(--gold)}
+.ph-ttl{
+  font-family:var(--serif);font-size:clamp(3rem,7vw,5.5rem);font-weight:300;
+  color:var(--cream);line-height:1;
+  opacity:0;animation:fup .95s .6s var(--E) forwards;
+}
+.ph-ttl em{font-style:italic;color:var(--gold-lt)}
+.ph-sub{
+  margin-top:18px;max-width:480px;font-size:.88rem;line-height:1.8;color:#5a564f;
+  opacity:0;animation:fup .85s .8s var(--E) forwards;
+}
+/* animated grid lines on hero */
+.ph-grid{
+  position:absolute;inset:0;z-index:1;pointer-events:none;
+  background:
+    repeating-linear-gradient(90deg,rgba(201,169,110,.02) 0px,rgba(201,169,110,.02) 1px,transparent 1px,transparent 120px),
+    repeating-linear-gradient(0deg,rgba(201,169,110,.02) 0px,rgba(201,169,110,.02) 1px,transparent 1px,transparent 120px);
+  animation:gridShift 25s linear infinite;
+}
+@keyframes gridShift{from{background-position:0 0}to{background-position:120px 120px}}
+
+/* ═══════════════════════════════
+   FOOTER
+═══════════════════════════════ */
+footer{
+  background:var(--deep);padding:50px 60px;
+  display:flex;align-items:center;justify-content:space-between;
+  border-top:1px solid rgba(201,169,110,.18);
+  position:relative;overflow:hidden;
+}
+footer::before{
+  content:'';position:absolute;top:0;left:0;width:100%;height:1px;
+  background:linear-gradient(90deg,transparent,var(--gold),transparent);
+  animation:shimmer 4s ease-in-out infinite;
+}
+.ft-logo{font-family:var(--serif);font-size:1.2rem;font-weight:600;letter-spacing:.08em;color:var(--cream);cursor:pointer;transition:opacity .3s}
+.ft-logo:hover{opacity:.7}
+.ft-logo span{color:var(--gold)}
+footer p{font-size:.74rem;color:#4a4540;letter-spacing:.08em}
+.ft-lks{display:flex;gap:28px}
+.ft-lks a{
+  font-size:.71rem;letter-spacing:.15em;text-transform:uppercase;color:#4a4540;
+  transition:color .3s;cursor:pointer;position:relative;
+}
+.ft-lks a::after{content:'';position:absolute;bottom:-2px;left:0;width:0;height:1px;background:var(--gold);transition:width .35s var(--Q)}
+.ft-lks a:hover{color:var(--gold)}
+.ft-lks a:hover::after{width:100%}
+
+/* ═══════════════════════════════
+   HOME — HERO BANNER
+═══════════════════════════════ */
+.hb{position:relative;height:100vh;min-height:680px;display:flex;align-items:flex-end;overflow:hidden;background:var(--deep)}
+#bgC{
+  position:absolute;inset:0;
+  background:
+    radial-gradient(ellipse at 70% 40%,rgba(201,169,110,.04) 0%,transparent 55%),
+    linear-gradient(150deg,rgba(26,23,18,.45) 0%,rgba(14,12,9,.95) 100%);
+  transform:scale(1.12);
+  transition:transform 2.2s var(--E);
+}
+#bgC.go{transform:scale(1)}
+/* animated mesh gradient */
+.hb-mesh{
+  position:absolute;inset:0;z-index:1;pointer-events:none;
+  background:
+    radial-gradient(circle at 20% 80%,rgba(201,169,110,.05) 0%,transparent 40%),
+    radial-gradient(circle at 80% 20%,rgba(201,169,110,.04) 0%,transparent 35%);
+  animation:meshPulse 8s ease-in-out infinite alternate;
+}
+@keyframes meshPulse{
+  0%{background:radial-gradient(circle at 20% 80%,rgba(201,169,110,.05) 0%,transparent 40%),radial-gradient(circle at 80% 20%,rgba(201,169,110,.04) 0%,transparent 35%)}
+  100%{background:radial-gradient(circle at 30% 60%,rgba(201,169,110,.08) 0%,transparent 40%),radial-gradient(circle at 70% 30%,rgba(201,169,110,.06) 0%,transparent 35%)}
+}
+/* diagonal scan lines */
+.hb-lines{
+  position:absolute;inset:0;z-index:1;
+  background:repeating-linear-gradient(-45deg,transparent,transparent 72px,rgba(201,169,110,.015) 72px,rgba(201,169,110,.015) 73px);
+  animation:scanDrift 28s linear infinite;
+}
+@keyframes scanDrift{from{background-position:0 0}to{background-position:200px 200px}}
+/* hero canvas (particles) */
+#hCvs{position:absolute;inset:0;z-index:2;pointer-events:none}
+/* gold line bottom */
+.hb::after{
+  content:'';position:absolute;bottom:0;left:0;width:100%;height:3px;
+  background:linear-gradient(90deg,transparent,var(--gold),transparent);
+  z-index:6;animation:shimmer 3.5s ease-in-out infinite;
+}
+.hc{position:relative;z-index:5;padding:0 60px 80px;display:flex;align-items:flex-end;justify-content:space-between;width:100%}
+.ht{max-width:660px}
+/* eyebrow */
+.h-ey{
+  font-size:.7rem;letter-spacing:.32em;text-transform:uppercase;color:var(--gold);
+  margin-bottom:26px;display:flex;align-items:center;gap:12px;
+  opacity:0;animation:fup .9s .75s var(--E) forwards;
+}
+.h-ey::before{content:'';width:26px;height:1px;background:var(--gold)}
+/* title with line-by-line reveal */
+.h-ttl{
+  font-family:var(--serif);font-size:clamp(3.5rem,8vw,7rem);
+  font-weight:300;line-height:.93;color:var(--cream);letter-spacing:-.02em;
+}
+.h-ttl .line{display:block;overflow:hidden}
+.h-ttl .line .inner{
+  display:block;
+  transform:translateY(110%);
+  animation:lineSlide .95s var(--E) forwards;
+}
+.h-ttl .line:nth-child(1) .inner{animation-delay:.88s}
+.h-ttl .line:nth-child(2) .inner{animation-delay:1.04s}
+@keyframes lineSlide{to{transform:translateY(0)}}
+.h-ttl em{font-style:italic;color:var(--gold-lt)}
+.h-sub{
+  margin-top:30px;font-size:.9rem;line-height:1.82;
+  color:rgba(214,207,196,.68);max-width:400px;
+  opacity:0;animation:fup .95s 1.2s var(--E) forwards;
+}
+.h-cta{margin-top:40px;display:flex;gap:16px;opacity:0;animation:fup .95s 1.38s var(--E) forwards}
+/* stat */
+.h-stat{text-align:right;opacity:0;animation:fup .95s 1.5s var(--E) forwards}
+.h-stat .num{
+  font-family:var(--serif);font-size:5.5rem;font-weight:300;line-height:1;
+  background:linear-gradient(130deg,var(--cream) 30%,var(--gold-lt) 70%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.h-stat .lbl{font-size:.68rem;letter-spacing:.22em;text-transform:uppercase;color:var(--gold);margin-top:8px}
+/* scroll hint */
+.sh{
+  position:absolute;bottom:28px;left:50%;transform:translateX(-50%);z-index:6;
+  display:flex;flex-direction:column;align-items:center;gap:8px;
+  opacity:0;animation:fup 1s 1.7s var(--E) forwards;
+}
+.sh span{font-size:.6rem;letter-spacing:.26em;text-transform:uppercase;color:rgba(214,207,196,.4)}
+.sh-ln{width:1px;height:56px;background:linear-gradient(to bottom,var(--gold),transparent);animation:sPulse 2.2s ease-in-out infinite}
+@keyframes sPulse{0%,100%{opacity:.15;transform:scaleY(.75)}50%{opacity:1;transform:scaleY(1)}}
+
+/* ── FEATURE STRIP ── */
+.fstrip{display:grid;grid-template-columns:repeat(3,1fr);background:var(--ink)}
+.fcard{
+  padding:62px 50px;border-right:1px solid rgba(255,255,255,.045);
+  position:relative;overflow:hidden;transition:background .45s;
+}
+.fcard::before{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(135deg,rgba(201,169,110,.07),transparent);
+  transform:translateX(-102%);transition:transform .6s var(--E);
+}
+.fcard::after{
+  content:'';position:absolute;bottom:0;left:0;width:0;height:2px;
+  background:var(--gold);transition:width .6s var(--E);
+}
+.fcard:hover::before{transform:none}
+.fcard:hover::after{width:100%}
+.fcard:last-child{border-right:none}
+.fcard-ico{
+  font-size:1.5rem;color:var(--gold);margin-bottom:26px;display:inline-block;
+  transition:transform .45s var(--E),color .3s;
+}
+.fcard:hover .fcard-ico{transform:scale(1.18) rotate(-6deg) translateY(-3px)}
+.fcard h3{font-family:var(--serif);font-size:1.35rem;font-weight:400;color:var(--cream);margin-bottom:12px;transition:color .3s}
+.fcard:hover h3{color:var(--gold-lt)}
+.fcard p{font-size:.84rem;line-height:1.8;color:#3a3530}
+
+/* ── FLOOR PLAN ── */
+.fps{display:grid;grid-template-columns:1fr 1fr;align-items:center;gap:88px;background:var(--deep);padding:128px 60px}
+.fps-txt .ttl{color:var(--cream)}
+.fps-txt p{margin-top:22px;font-size:.9rem;line-height:1.88;color:#5a564f;max-width:460px}
+.fps-img{position:relative;overflow:hidden}
+.fps-ph{
+  width:100%;aspect-ratio:4/3;
+  background:linear-gradient(135deg,#2a2520,#3a3028,#1a1510);
+  display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px;
+  transition:transform .9s var(--E);
+}
+.fps-img:hover .fps-ph{transform:scale(1.05)}
+/* corner accent */
+.fps-img::before{
+  content:'';position:absolute;top:-14px;right:-14px;width:55%;height:55%;
+  border:1px solid rgba(201,169,110,.15);z-index:2;pointer-events:none;
+  transition:border-color .4s,top .4s var(--E),right .4s var(--E);
+}
+.fps-img:hover::before{border-color:rgba(201,169,110,.45);top:-20px;right:-20px}
+/* wipe mask */
+.fps-img .msk{position:absolute;inset:0;background:var(--deep);z-index:3;transform-origin:bottom;transition:transform 1.4s var(--E)}
+.fps-img.unmasked .msk{transform:scaleY(0)}
+
+/* ── DESIGN / VIDEO ── */
+.ds{display:grid;grid-template-columns:1fr 1fr;gap:88px;align-items:center;padding:128px 60px;background:var(--cream)}
+.ds-txt p{margin-top:20px;font-size:.9rem;line-height:1.88;color:var(--mid);max-width:440px;margin-bottom:38px}
+.vw{
+  position:relative;aspect-ratio:16/9;overflow:hidden;background:var(--deep);
+  box-shadow:0 48px 96px rgba(0,0,0,.14);
+  transition:box-shadow .5s,transform .5s var(--E);
+}
+.vw:hover{box-shadow:0 72px 140px rgba(0,0,0,.24);transform:translateY(-8px) scale(1.01)}
+.vw-ph{width:100%;height:100%;background:linear-gradient(135deg,#1c1a16,#2a2620);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px}
+.vw .msk{position:absolute;inset:0;background:var(--cream);z-index:3;transform-origin:right;transition:transform 1.4s var(--E)}
+.vw.unmasked .msk{transform:scaleX(0)}
+
+/* ── CONTACT ── */
+.cs{display:grid;grid-template-columns:1fr 1fr;gap:88px;align-items:start;padding:128px 60px;background:var(--cream);border-top:1px solid var(--mist)}
+.ci{display:flex;align-items:flex-start;gap:18px;margin-bottom:30px}
+.iw{
+  width:46px;height:46px;border:1px solid var(--gold);
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  color:var(--gold);font-size:.9rem;
+  transition:background .35s,color .35s,transform .45s var(--E),border-color .35s;
+}
+.ci:hover .iw{background:var(--gold);color:var(--deep);transform:rotate(7deg) scale(1.12)}
+.dt{font-size:.85rem;line-height:1.65;color:var(--mid)}
+.dt strong{display:block;font-family:var(--serif);font-size:1rem;font-weight:400;color:var(--ink);margin-bottom:3px}
+.cform{display:flex;flex-direction:column;gap:16px}
+.cform input,.cform textarea{
+  width:100%;padding:15px 18px;background:transparent;
+  border:1px solid var(--mist);color:var(--ink);
+  font-family:var(--sans);font-size:.88rem;
+  outline:none;transition:border-color .35s,box-shadow .35s,transform .35s;
+}
+.cform input::placeholder,.cform textarea::placeholder{color:#a09890}
+.cform input:focus,.cform textarea:focus{
+  border-color:var(--gold);
+  box-shadow:0 6px 24px rgba(201,169,110,.1);
+  transform:translateY(-2px);
+}
+.cform textarea{resize:vertical;min-height:112px}
+
+/* ═══════════════════════════════
+   PROJECTS
+═══════════════════════════════ */
+.fb{
+  display:flex;background:var(--ink);border-bottom:1px solid rgba(255,255,255,.04);
+  overflow-x:auto;padding:0 60px;
+  position:sticky;top:62px;z-index:100;
+}
+.fbt{
+  padding:20px 26px;font-size:.71rem;letter-spacing:.18em;text-transform:uppercase;
+  color:#5a564f;background:none;border:none;cursor:pointer;position:relative;
+  white-space:nowrap;transition:color .35s;font-family:var(--sans);
+}
+.fbt::after{content:'';position:absolute;bottom:0;left:0;width:0;height:2px;background:var(--gold);transition:width .45s var(--Q)}
+.fbt:hover{color:var(--mist)}
+.fbt.on{color:var(--gold)}
+.fbt.on::after{width:100%}
+
+.fp2{display:grid;grid-template-columns:1fr 1fr;min-height:540px;overflow:hidden}
+.fi{position:relative;overflow:hidden;background:var(--mid);min-height:400px}
+.fi-bg{
+  width:100%;height:100%;
+  background:linear-gradient(135deg,#2a2520,#3a3028,#1a1510);
+  display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px;
+  transition:transform 1s var(--E),filter .5s;
+}
+.fi:hover .fi-bg{transform:scale(1.07);filter:brightness(.8)}
+.f-tag{position:absolute;top:28px;left:28px;background:var(--gold);color:var(--deep);font-size:.64rem;letter-spacing:.22em;text-transform:uppercase;padding:7px 16px;font-weight:500}
+.finfo{background:var(--deep);padding:64px 56px;display:flex;flex-direction:column;justify-content:center}
+.flbl{font-size:.68rem;letter-spacing:.28em;text-transform:uppercase;color:var(--gold);margin-bottom:20px}
+.fttl{font-family:var(--serif);font-size:clamp(2rem,3vw,2.8rem);font-weight:300;color:var(--cream);line-height:1.1;margin-bottom:22px}
+.fttl em{font-style:italic}
+.fdsc{font-size:.87rem;line-height:1.87;color:#5a564f;max-width:380px;margin-bottom:36px}
+.fmeta{display:flex;gap:40px;margin-bottom:40px}
+.fmk .key{font-size:.63rem;letter-spacing:.2em;text-transform:uppercase;color:#3a3530;margin-bottom:6px}
+.fmk .val{font-family:var(--serif);font-size:1rem;color:var(--mist)}
+
+/* project grid */
+.pgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:4px}
+.pc{position:relative;overflow:hidden;background:var(--mid);aspect-ratio:3/4;cursor:pointer}
+.pc.w{grid-column:span 2;aspect-ratio:16/9}
+.pcbg{
+  width:100%;height:100%;
+  transition:transform .85s var(--E),filter .5s;
+  filter:brightness(.68);
+}
+.pc:hover .pcbg{transform:scale(1.1);filter:brightness(.38)}
+.pco{
+  position:absolute;inset:0;
+  background:linear-gradient(to top,rgba(10,10,10,.92) 0%,transparent 55%);
+  display:flex;flex-direction:column;justify-content:flex-end;padding:28px;
+}
+.pcc{
+  font-size:.64rem;letter-spacing:.24em;text-transform:uppercase;color:var(--gold);margin-bottom:8px;
+  transform:translateY(12px);opacity:0;transition:transform .5s var(--E),opacity .5s;
+}
+.pc:hover .pcc{transform:none;opacity:1}
+.pcn{
+  font-family:var(--serif);font-size:1.4rem;font-weight:300;color:var(--cream);line-height:1.15;
+  transform:translateY(6px);transition:transform .5s .04s var(--E);
+}
+.pc:hover .pcn{transform:none}
+.pcl{
+  font-size:.72rem;color:var(--mist);margin-top:6px;display:flex;align-items:center;gap:6px;
+  transform:translateY(8px);opacity:0;transition:transform .5s .08s var(--E),opacity .5s .08s;
+}
+.pc:hover .pcl{transform:none;opacity:1}
+.pcl i{color:var(--gold);font-size:.64rem}
+.pcb{
+  position:absolute;top:20px;right:20px;
+  width:38px;height:38px;border:1px solid rgba(201,169,110,.5);border-radius:50%;
+  display:flex;align-items:center;justify-content:center;color:var(--gold);font-size:.78rem;
+  opacity:0;transform:scale(.6) rotate(-45deg);
+  transition:opacity .45s,transform .45s var(--E);
+}
+.pc:hover .pcb{opacity:1;transform:scale(1) rotate(0)}
+
+/* stats */
+.srow{display:grid;grid-template-columns:repeat(4,1fr);background:var(--deep)}
+.scell{padding:62px 46px;border-right:1px solid rgba(255,255,255,.05);position:relative;overflow:hidden;transition:background .4s}
+.scell:last-child{border-right:none}
+.scell::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(201,169,110,.05),transparent);transform:translateY(102%);transition:transform .6s var(--E)}
+.scell:hover::before{transform:none}
+.scell-n{font-family:var(--serif);font-size:3.6rem;font-weight:300;color:var(--cream);line-height:1}
+.scell-l{font-size:.69rem;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);margin-top:10px}
+.scell-s{font-size:.77rem;color:#3a3530;margin-top:5px}
+
+/* testimonials */
+.tss{padding:100px 60px;background:var(--cream);display:grid;grid-template-columns:1fr 2fr;gap:72px;align-items:center}
+.tslbl{font-size:.69rem;letter-spacing:.28em;text-transform:uppercase;color:var(--gold);margin-bottom:18px}
+.tsttl{font-family:var(--serif);font-size:clamp(1.8rem,2.8vw,2.4rem);font-weight:300;line-height:1.2}
+.tscds{display:flex;flex-direction:column;gap:24px}
+.tscd{
+  padding:34px 40px;border:1px solid var(--mist);position:relative;overflow:hidden;
+  transition:border-color .45s,transform .45s var(--E),box-shadow .45s;
+  cursor:default;
+}
+.tscd::before{content:'\201C';font-family:var(--serif);font-size:6rem;line-height:.45;color:rgba(201,169,110,.13);position:absolute;top:22px;left:26px}
+.tscd::after{content:'';position:absolute;bottom:0;left:0;width:0;height:2px;background:var(--gold);transition:width .55s var(--E)}
+.tscd:hover{border-color:rgba(201,169,110,.35);transform:translateX(10px);box-shadow:-10px 0 0 var(--gold)}
+.tscd:hover::after{width:100%}
+.tst{font-size:.88rem;line-height:1.82;color:var(--mid);position:relative;z-index:1;padding-left:8px}
+.tsa{margin-top:20px;display:flex;align-items:center;gap:14px}
+.tsav{width:38px;height:38px;border-radius:50%;background:var(--gold);display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-size:1rem;color:var(--deep);flex-shrink:0}
+.tsan{font-family:var(--serif);font-size:.95rem;color:var(--ink)}
+.tsal{font-size:.71rem;color:#8a857e;margin-top:1px}
+
+/* process */
+.prcs{padding:92px 60px;background:var(--ink)}
+.prcsh{display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:end;margin-bottom:66px}
+.prcsttl{font-family:var(--serif);font-size:clamp(2rem,3.5vw,2.8rem);font-weight:300;color:var(--cream)}
+.prcsttl em{font-style:italic;color:var(--gold-lt)}
+.prcsb{font-size:.88rem;line-height:1.87;color:#4a4540}
+.prcss{display:grid;grid-template-columns:repeat(4,1fr)}
+.step{
+  padding:46px 34px;border-right:1px solid rgba(255,255,255,.04);
+  position:relative;overflow:hidden;transition:background .4s;
+}
+.step:last-child{border-right:none}
+.step::before{content:'';position:absolute;top:0;left:0;width:100%;height:0;background:linear-gradient(to bottom,rgba(201,169,110,.07),transparent);transition:height .6s var(--E)}
+.step:hover::before{height:100%}
+.step-n{font-family:var(--serif);font-size:3.6rem;font-weight:300;color:rgba(201,169,110,.1);line-height:1;margin-bottom:22px;transition:color .4s}
+.step:hover .step-n{color:rgba(201,169,110,.28)}
+.step-i{font-size:1rem;color:var(--gold);margin-bottom:14px;display:inline-block;transition:transform .45s var(--E)}
+.step:hover .step-i{transform:scale(1.22) translateY(-2px)}
+.step-t{font-family:var(--serif);font-size:1.15rem;font-weight:400;color:var(--cream);margin-bottom:10px}
+.step-x{font-size:.82rem;line-height:1.78;color:#3a3530}
+
+/* grid section */
+.gs{padding:82px 60px;background:var(--cream)}
+.gh{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:54px}
+.gttl{font-family:var(--serif);font-size:clamp(1.8rem,3vw,2.4rem);font-weight:300}
+.gttl em{font-style:italic;color:var(--gold)}
+.va{font-size:.71rem;letter-spacing:.18em;text-transform:uppercase;color:var(--gold);cursor:pointer;transition:opacity .3s}
+.va:hover{opacity:.6}
+
+/* ═══════════════════════════════
+   SERVICES
+═══════════════════════════════ */
+.ib{background:var(--ink);padding:72px 60px;display:grid;grid-template-columns:1fr 1fr;gap:88px;align-items:center}
+.ittl{font-family:var(--serif);font-size:clamp(2rem,3.5vw,3rem);font-weight:300;color:var(--cream);line-height:1.15}
+.ittl em{font-style:italic}
+.isub{font-size:.88rem;line-height:1.87;color:#4a4540}
+.isub strong{display:block;font-family:var(--serif);font-size:1.1rem;font-weight:400;color:var(--mist);margin-bottom:12px}
+
+.smain{padding:98px 60px;background:var(--cream)}
+.svi{border-bottom:1px solid var(--mist);position:relative}
+.svi:first-child{border-top:1px solid var(--mist)}
+.svi::after{content:'';position:absolute;bottom:0;left:0;width:0;height:1px;background:var(--gold);transition:width .7s var(--E)}
+.svi.open::after{width:100%}
+.svtrig{
+  display:flex;align-items:center;justify-content:space-between;padding:34px 0;
+  cursor:pointer;transition:padding-left .45s var(--E);
+}
+.svtrig:hover{padding-left:12px}
+.svtl{display:flex;align-items:center;gap:24px}
+.svnum{font-family:var(--serif);font-size:.84rem;color:var(--gold)}
+.svico{font-size:.95rem;color:var(--gold);display:inline-block;transition:transform .5s var(--E)}
+.svi.open .svico{transform:rotate(360deg)}
+.svtitle{font-family:var(--serif);font-size:clamp(1.2rem,2.5vw,1.75rem);font-weight:300;color:var(--ink);transition:color .35s}
+.svi.open .svtitle{color:var(--gold)}
+.svarr{
+  width:38px;height:38px;border:1px solid var(--mist);border-radius:50%;
+  display:flex;align-items:center;justify-content:center;font-size:.8rem;color:var(--mid);
+  flex-shrink:0;transition:transform .5s var(--E),border-color .35s,background .35s,color .35s;
+}
+.svi.open .svarr{transform:rotate(45deg);border-color:var(--gold);background:var(--gold);color:var(--deep)}
+.svbody{max-height:0;overflow:hidden;transition:max-height .7s var(--E)}
+.svi.open .svbody{max-height:520px}
+.svinner{display:grid;grid-template-columns:1.5fr 1fr;gap:52px;padding:0 0 46px}
+.svdesc{font-size:.89rem;line-height:1.87;color:var(--mid);max-width:500px}
+.svfeats{display:flex;flex-direction:column;gap:12px}
+.svfeat{
+  display:flex;align-items:flex-start;gap:12px;font-size:.84rem;color:var(--mid);line-height:1.55;
+  transition:transform .35s var(--E),color .3s;
+}
+.svfeat:hover{transform:translateX(7px);color:var(--ink)}
+.dot{width:5px;height:5px;border-radius:50%;background:var(--gold);flex-shrink:0;margin-top:8px}
+.svpr{margin-top:22px;display:flex;align-items:center;gap:22px}
+.svprice{font-family:var(--serif);font-size:1rem;color:var(--ink)}
+.svprice span{color:var(--gold)}
+
+/* packages */
+.pks{padding:98px 60px;background:var(--deep)}
+.pkg-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-top:62px}
+.pkc{
+  background:rgba(255,255,255,.03);padding:50px 42px;border:1px solid rgba(255,255,255,.05);
+  position:relative;overflow:hidden;
+  transition:background .45s,border-color .45s,transform .5s var(--E),box-shadow .45s;
+  cursor:pointer;
+}
+.pkc::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(201,169,110,.07),transparent);opacity:0;transition:opacity .45s}
+.pkc:hover{background:rgba(201,169,110,.06);border-color:rgba(201,169,110,.3);transform:translateY(-10px);box-shadow:0 48px 96px rgba(0,0,0,.35)}
+.pkc:hover::before{opacity:1}
+.pkc.fp{background:rgba(201,169,110,.08);border-color:rgba(201,169,110,.32)}
+.pkbadge{position:absolute;top:0;right:0;background:var(--gold);color:var(--deep);font-size:.61rem;letter-spacing:.18em;text-transform:uppercase;padding:7px 16px;font-weight:500}
+.pkter{font-size:.67rem;letter-spacing:.24em;text-transform:uppercase;color:var(--gold);margin-bottom:10px}
+.pkname{font-family:var(--serif);font-size:2.1rem;font-weight:300;color:var(--cream);margin-bottom:6px}
+.pkprice{font-family:var(--serif);font-size:1rem;color:var(--mist);margin-bottom:28px}
+.pkprice span{color:var(--gold);font-size:1.5rem}
+.pkdiv{height:1px;background:rgba(255,255,255,.06);margin-bottom:28px}
+.pkfeats{display:flex;flex-direction:column;gap:12px;margin-bottom:38px}
+.pkfeat{display:flex;align-items:center;gap:10px;font-size:.83rem;color:#6a6560;transition:color .3s,transform .35s var(--E)}
+.pkfeat:hover{color:var(--mist);transform:translateX(4px)}
+.pkfeat i{color:var(--gold);font-size:.7rem;min-width:13px}
+.pkfeat.off{color:#2a2620}
+.pkfeat.off i{color:#2a2620}
+.btn-pk{
+  width:100%;padding:13px;border:1px solid rgba(201,169,110,.35);background:none;
+  color:var(--gold);font-family:var(--sans);font-size:.74rem;letter-spacing:.15em;text-transform:uppercase;
+  cursor:pointer;position:relative;overflow:hidden;transition:color .45s;
+}
+.btn-pk::before{content:'';position:absolute;inset:0;background:var(--gold);transform:translateY(102%);transition:transform .5s var(--E)}
+.btn-pk:hover::before,.fp .btn-pk::before{transform:none}
+.btn-pk:hover,.fp .btn-pk{color:var(--deep)}
+.btn-pk span{position:relative;z-index:1}
+
+/* tools */
+.tlsec{padding:98px 60px;background:var(--cream)}
+.tlgrid{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-top:62px}
+.tlcard{padding:54px 50px;background:#eeead8;position:relative;overflow:hidden;cursor:pointer;transition:background .4s}
+.tlcard:hover{background:#e6e1cc}
+.tlcard.dk{background:var(--ink)}
+.tlcard.dk:hover{background:#141210}
+.tlcard.dk .tltitle,.tlcard.dk .tlin{color:var(--cream)}
+.tlcard.dk .tldesc{color:#3a3530}
+.tlcard.dk .tlico{color:var(--gold)}
+.tlcard.dk .tllink{color:var(--gold);border-color:rgba(201,169,110,.35)}
+.tlcard.dk .tlnum{color:rgba(255,255,255,.04)}
+/* diagonal swipe */
+.tlcard::before{
+  content:'';position:absolute;inset:-120%;
+  background:rgba(201,169,110,.06);
+  transform:rotate(45deg) translateX(-100%);
+  transition:transform .7s var(--E);
+}
+.tlcard:hover::before{transform:rotate(45deg) translateX(55%)}
+.tlnum{font-family:var(--serif);font-size:6.5rem;font-weight:300;color:rgba(0,0,0,.04);position:absolute;top:12px;right:26px;line-height:1;pointer-events:none;transition:transform .6s var(--E),color .4s}
+.tlcard:hover .tlnum{transform:scale(1.1) translateY(-8px)}
+.tlico{font-size:1.7rem;color:var(--mid);margin-bottom:24px;display:inline-block;transition:transform .5s var(--E)}
+.tlcard:hover .tlico{transform:rotate(-10deg) scale(1.18)}
+.tltitle{font-family:var(--serif);font-size:1.5rem;font-weight:300;color:var(--ink);margin-bottom:14px;line-height:1.15}
+.tldesc{font-size:.85rem;line-height:1.82;color:var(--mid);max-width:340px;margin-bottom:30px}
+.tllink{
+  display:inline-flex;align-items:center;gap:8px;font-size:.71rem;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--mid);border-bottom:1px solid var(--mid);padding-bottom:3px;
+  transition:color .35s,border-color .35s,gap .35s var(--E);position:relative;z-index:1;
+}
+.tllink:hover{color:var(--gold);border-color:var(--gold);gap:16px}
+.tlin{position:relative;z-index:1}
+
+/* why */
+.wsec{padding:98px 60px;background:var(--deep)}
+.win{display:grid;grid-template-columns:1fr 1.6fr;gap:96px;align-items:start}
+.wleft p{font-size:.88rem;line-height:1.87;color:#3a3530;margin-top:22px}
+.wright{display:grid;grid-template-columns:1fr 1fr;gap:4px}
+.wcard{
+  padding:42px 38px;background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.04);
+  position:relative;overflow:hidden;
+  transition:background .45s,border-color .45s,transform .5s var(--E);
+}
+.wcard::before{content:'';position:absolute;bottom:0;left:0;width:0;height:1px;background:var(--gold);transition:width .6s var(--E)}
+.wcard:hover{background:rgba(201,169,110,.055);border-color:rgba(201,169,110,.2);transform:translateY(-5px)}
+.wcard:hover::before{width:100%}
+.wico{font-size:1.3rem;color:var(--gold);margin-bottom:18px;display:inline-block;transition:transform .45s var(--E)}
+.wcard:hover .wico{transform:scale(1.22) rotate(-6deg)}
+.wttl{font-family:var(--serif);font-size:1.1rem;font-weight:400;color:var(--cream);margin-bottom:9px}
+.wtxt{font-size:.82rem;line-height:1.78;color:#3a3530}
+
+/* CTA band */
+.cta{padding:102px 60px;background:var(--cream);text-align:center;position:relative;overflow:hidden}
+.cta::before{
+  content:'';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  width:760px;height:760px;border-radius:50%;
+  background:radial-gradient(circle,rgba(201,169,110,.07) 0%,transparent 65%);
+  pointer-events:none;animation:orbFloat 11s ease-in-out infinite;
+}
+.cta::after{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 50% 50%,rgba(201,169,110,.03) 0%,transparent 60%);pointer-events:none}
+.cta-lbl{font-size:.69rem;letter-spacing:.28em;text-transform:uppercase;color:var(--gold);margin-bottom:20px;display:flex;align-items:center;justify-content:center;gap:14px}
+.cta-lbl::before,.cta-lbl::after{content:'';width:28px;height:1px;background:var(--gold)}
+.cta-ttl{font-family:var(--serif);font-size:clamp(2.5rem,5vw,4.5rem);font-weight:300;color:var(--ink);line-height:1.08;margin-bottom:38px;position:relative;z-index:1}
+.cta-ttl em{font-style:italic}
+.cta-btns{display:flex;align-items:center;justify-content:center;gap:18px;flex-wrap:wrap;position:relative;z-index:1}
+
+/* FAQ */
+.fqsec{padding:98px 60px;background:var(--cream);border-top:1px solid var(--mist)}
+.fqinner{display:grid;grid-template-columns:1fr 2fr;gap:74px}
+.fqleft p{font-size:.87rem;line-height:1.82;color:var(--mid);margin-top:22px}
+.fqitem{border-bottom:1px solid var(--mist);overflow:hidden}
+.fqq{
+  display:flex;justify-content:space-between;align-items:center;padding:24px 0;
+  cursor:pointer;gap:18px;font-family:var(--serif);font-size:1.05rem;font-weight:400;color:var(--ink);
+  transition:color .35s,padding-left .45s var(--E);
+}
+.fqq:hover{color:var(--gold);padding-left:8px}
+.fqico{font-size:.74rem;color:var(--gold);flex-shrink:0;transition:transform .45s var(--E)}
+.fqitem.open .fqico{transform:rotate(45deg)}
+.fqa{max-height:0;overflow:hidden;transition:max-height .6s var(--E)}
+.fqitem.open .fqa{max-height:220px}
+.fqai{padding-bottom:22px;font-size:.87rem;line-height:1.82;color:var(--mid);max-width:560px}
+
+/* ═══════════════════════════════
+   RESPONSIVE
+═══════════════════════════════ */
+@media(max-width:960px){
+  header,header.stuck{padding:20px 28px}
+  .hc{padding:0 28px 56px;flex-direction:column;align-items:flex-start;gap:38px}
+  .h-stat{text-align:left}
+  .ph{padding-left:28px;padding-bottom:60px}
+  .fstrip{grid-template-columns:1fr}
+  .fcard{border-right:none;border-bottom:1px solid rgba(255,255,255,.045)}
+  .fps,.ds,.cs{grid-template-columns:1fr;gap:48px;padding:76px 28px}
+  .fb{padding:0 28px;top:62px}
+  .fp2{grid-template-columns:1fr}
+  .finfo{padding:46px 32px}
+  .pgrid{grid-template-columns:1fr 1fr}
+  .pc.w{grid-column:span 2}
+  .srow{grid-template-columns:1fr 1fr}
+  .scell{border-right:none;border-bottom:1px solid rgba(255,255,255,.045)}
+  .tss{grid-template-columns:1fr;padding:76px 28px}
+  .prcs,.gs{padding:76px 28px}
+  .prcsh{grid-template-columns:1fr}
+  .prcss{grid-template-columns:1fr 1fr}
+  .ib{grid-template-columns:1fr;padding:64px 28px}
+  .smain,.pks,.tlsec,.wsec,.cta,.fqsec{padding:76px 28px}
+  .pkg-grid,.wright{grid-template-columns:1fr}
+  .tlgrid{grid-template-columns:1fr}
+  .win{grid-template-columns:1fr;gap:48px}
+  .fqinner{grid-template-columns:1fr}
+  .svinner{grid-template-columns:1fr;gap:28px}
+  footer{flex-direction:column;gap:18px;text-align:center;padding:44px 28px}
+  .ft-lks{justify-content:center}
+  #cur,#curR{display:none}
+}
+@media(max-width:600px){
+  .pgrid{grid-template-columns:1fr}
+  .pc.w{grid-column:span 1;aspect-ratio:4/3}
+  .prcss,.srow{grid-template-columns:1fr}
+}
+</style>
 </head>
-
 <body>
-    <header>
-        <div>
 
+<!-- SCROLL PROGRESS BAR -->
+<div id="spb"></div>
+
+<!-- LOADER -->
+<div id="loader">
+  <div class="ld-logo">Smart<span>Space</span></div>
+  <div class="ld-tagline">Real Estate &amp; Interior Design</div>
+  <div class="ld-track"><div class="ld-fill" id="ldFill"></div></div>
+  <div class="ld-nums"><span id="ldPct">0%</span></div>
+</div>
+
+<!-- WIPE TRANSITION -->
+<div id="wipe"></div>
+
+<!-- CURSOR -->
+<div id="cur"></div>
+<div id="curR"></div>
+
+<!-- HEADER -->
+<header id="hdr">
+  <div class="logo" onclick="go('home')">Smart<span>Space</span></div>
+  <nav><ul>
+    <li><a id="na-home" class="on" onclick="go('home')">Home</a></li>
+    <li><a id="na-projects" onclick="go('projects')">Projects</a></li>
+    <li><a id="na-services" onclick="go('services')">Services</a></li>
+    <li><a onclick="go('home','contact')">Contact</a></li>
+  </ul></nav>
+</header>
+
+<!-- ════════════════════ HOME ════════════════════ -->
+<div class="page active" id="page-home">
+  <!-- Hero -->
+  <div class="hb">
+    <div id="bgC"></div>
+    <div class="hb-mesh"></div>
+    <div class="hb-lines"></div>
+    <canvas id="hCvs"></canvas>
+    <div class="hc">
+      <div class="ht">
+        <p class="h-ey">Real Estate &amp; Interior Design</p>
+        <h1 class="h-ttl">
+          <span class="line"><span class="inner">Smart</span></span>
+          <span class="line"><span class="inner"><em>Space</em></span></span>
+        </h1>
+        <p class="h-sub">Where architecture meets aspiration. We craft spaces that tell your story — from concept to creation.</p>
+        <div class="h-cta">
+          <button class="bp" onclick="go('services')"><span>Explore Services</span><span class="arr">→</span></button>
+          <button class="bg" onclick="go('projects')"><span>Our Work</span><span class="arr">→</span></button>
         </div>
-        <nav>
-            <ul>
-                <li class="active">Home</li>
-                <li>Contact</li>
-                <li>About</li>
-            </ul>
-        </nav>
-    </header>
-    <div class="banner">
-        <div id="bg_city"></div>
-        <div class="content">
-            <div class="item">
-            </div>
-            <div class="item title">
-                <p>SMART SPACE</p>
-                <p>real estate</p>
-            </div>
-        </div>
+      </div>
+      <div class="h-stat">
+        <div class="num" id="heroNum" data-target="500">0</div>
+        <div class="lbl">Projects Delivered</div>
+      </div>
     </div>
-    <br>
-<main>    
-        </div>
-        <main>
-        <section class="floor-plan-section">
-            <div class="floor-plan-text">
-                <h2>Create a floor plan from scratch or upload an existing one</h2>
-                <p>
-                    Design your ideal layout from scratch, or use our advanced tools to get your floor plan recognized in minutes!
-                    Create a fully customizable floor plan—whether it’s a simple room, an entire house or a commercial building.
-                    Visualize your results with stunning 3D views and high‑quality renders so you can see exactly how your space will look
-                    before you build.
-                </p>
-            </div>
-            <div class="floor-plan-image">
-                <img src="img/imgfloorplan-3d.jpeg" alt="3D floor plan preview">
-            </div>
-        </section>
+    <div class="sh"><span>Scroll</span><div class="sh-ln"></div></div>
+  </div>
 
-        <div class="friend">
-            <div class="me">
-                <h1>Design your dream home</h1>
-                
-               <h1>Furnish and decorate with our 3D house design tool</h1>
-                <p>Design your ideal layout from scratch, or use our advanced tools to get your floor plan recognized in minutes! Create a fully customizable floor plan—whether it’s a simple room, an entire house or a commercial building</p>
-                <br>
-                <button onclick="window.location.href='../../example/index.html';" 
-                style="background:linear-gradient(135deg,#6a11cb,#2575fc);color:white;border:none;padding:12px 28px;border-radius:30px;font-size:16px;font-weight:600;cursor:pointer;box-shadow:0 4px 10px rgba(0,0,0,0.2);transition:0.3s;"
-                onmouseover="this.style.transform='scale(1.08)';this.style.boxShadow='0 6px 18px rgba(37,117,252,0.4)'"
-                onmouseout="this.style.transform='scale(1)';this.style.boxShadow='0 4px 10px rgba(0,0,0,0.2)'">
-                Design Your Room
-                </button>
-            </div>
-            
+  <!-- Feature strip -->
+  <div class="fstrip">
+    <div class="fcard rv"><div class="fcard-ico"><i class="fa-solid fa-drafting-compass"></i></div><h3>Custom Floor Plans</h3><p>Design from scratch or upload existing plans. Every square metre, perfectly considered.</p></div>
+    <div class="fcard rv d1"><div class="fcard-ico"><i class="fa-solid fa-cube"></i></div><h3>3D Visualisation</h3><p>Photorealistic renders and immersive walkthroughs before a single brick is laid.</p></div>
+    <div class="fcard rv d2"><div class="fcard-ico"><i class="fa-solid fa-couch"></i></div><h3>Interior Styling</h3><p>Furniture, finishes, and décor curated by our designers to your exact taste.</p></div>
+  </div>
 
-        <section class="video-section">
-            
-            <div class="video-wrapper">
-                <video autoplay muted loop playsinline controls preload="metadata" poster="">
-                    <source src="img/Smart%20Space%20Video.mp4" type="video/mp4">
-                    Your browser does not support the video tag.
-                </video>
-            </div>
-        </section>
+  <!-- Floor plan -->
+  <section class="fps">
+    <div class="fps-txt rvL">
+      <p class="lbl">Our Tools</p>
+      <h2 class="ttl">Create a floor plan from scratch or <em>upload an existing one</em></h2>
+      <p>Design your ideal layout, or use our advanced tools to get your floor plan recognised in minutes. Build a fully customisable plan and visualise with stunning 3D renders.</p>
+    </div>
+    <div class="fps-img rvS">
+      <div class="msk"></div>
+      <div class="fps-ph">
+        <i class="fa-solid fa-vector-square" style="font-size:3.5rem;color:rgba(201,169,110,.26)"></i>
+        <span style="font-family:var(--serif);font-size:.9rem;color:rgba(255,255,255,.15);letter-spacing:.1em">Floor Plan Preview</span>
+      </div>
+    </div>
+  </section>
 
+  <!-- Design/Video -->
+  <section class="ds">
+    <div class="ds-txt rvL">
+      <p class="lbl">Design Studio</p>
+      <h2 class="ttl">Design your <em>dream home</em></h2>
+      <p>Furnish and decorate with our intuitive 3D house design tool. Place furniture, experiment with colours, and see your vision come to life — before you commit to a single purchase.</p>
+      <button class="bo"><span>Design Your Room</span><span class="arr">→</span></button>
+    </div>
+    <div class="vw rvR">
+      <div class="msk"></div>
+      <div class="vw-ph">
+        <i class="fa-solid fa-play-circle" style="font-size:3.5rem;color:rgba(201,169,110,.26)"></i>
+        <span style="font-family:var(--serif);font-size:.9rem;color:rgba(255,255,255,.15);letter-spacing:.1em">Smart Space Video</span>
+      </div>
+    </div>
+  </section>
 
-        <div class="friend">
-            <h2>Contact Us</h2>
-            <p><i class="fa-solid fa-envelope"></i> smartspace@gmail.com</p>
-            <p><i class="fa-solid fa-phone"></i> +91 9869035747</p>
-            <p><i class="fa-solid fa-location-dot"></i> 123 VASHI , NAVI MUMBAI , INDIA </p>
-    
+  <!-- Contact -->
+  <section class="cs" id="contact">
+    <div class="rvL">
+      <p class="lbl">Get in Touch</p>
+      <h2 class="ttl">Let's build something <em>remarkable</em></h2>
+      <div style="margin-top:38px">
+        <div class="ci"><div class="iw"><i class="fa-solid fa-envelope"></i></div><div class="dt"><strong>Email</strong>smartspace@gmail.com</div></div>
+        <div class="ci"><div class="iw"><i class="fa-solid fa-phone"></i></div><div class="dt"><strong>Phone</strong>+91 98690 35747</div></div>
+        <div class="ci"><div class="iw"><i class="fa-solid fa-location-dot"></i></div><div class="dt"><strong>Address</strong>123 Vashi, Navi Mumbai, India</div></div>
+      </div>
+    </div>
+    <div class="rvR">
+      <div class="cform">
+        <input type="text" placeholder="Your Name"/>
+        <input type="email" placeholder="Email Address"/>
+        <input type="tel" placeholder="Phone Number"/>
+        <textarea placeholder="Tell us about your project…"></textarea>
+        <button class="bp" style="align-self:flex-start"><span>Send Message</span><span class="arr">→</span></button>
+      </div>
+    </div>
+  </section>
+
+  <footer><div class="ft-logo" onclick="go('home')">Smart<span>Space</span></div><p>© 2025 Smart Space. All rights reserved.</p><div class="ft-lks"><a>Privacy</a><a>Terms</a><a>Careers</a></div></footer>
+</div>
+
+<!-- ════════════════════ PROJECTS ════════════════════ -->
+<div class="page" id="page-projects">
+  <div class="ph">
+    <canvas class="ph-cv"></canvas>
+    <div class="ph-grid"></div>
+    <div class="ph-orb"></div>
+    <div class="ph-in">
+      <p class="ph-lbl">Our Portfolio</p>
+      <h1 class="ph-ttl">Curated <em>Projects</em></h1>
+    </div>
+    <div style="position:absolute;right:60px;bottom:80px;z-index:2;text-align:right;opacity:0;animation:fup .9s .8s var(--E) forwards">
+      <div class="cnt" data-target="48" style="font-family:var(--serif);font-size:3.5rem;font-weight:300;color:var(--cream);line-height:1">0</div>
+      <div style="font-size:.68rem;letter-spacing:.22em;text-transform:uppercase;color:var(--gold);margin-top:5px">Completed Works</div>
+    </div>
+  </div>
+
+  <div class="fb">
+    <button class="fbt on" data-f="all">All Projects</button>
+    <button class="fbt" data-f="residential">Residential</button>
+    <button class="fbt" data-f="commercial">Commercial</button>
+    <button class="fbt" data-f="interior">Interior</button>
+    <button class="fbt" data-f="renovation">Renovation</button>
+    <button class="fbt" data-f="luxury">Luxury</button>
+  </div>
+
+  <div class="fp2">
+    <div class="fi"><div class="fi-bg"><i class="fa-solid fa-building" style="font-size:4rem;color:rgba(201,169,110,.18)"></i><span style="font-family:var(--serif);font-size:.85rem;color:rgba(255,255,255,.1);letter-spacing:.1em">Featured</span></div><div class="f-tag">Featured</div></div>
+    <div class="finfo">
+      <p class="flbl rv">Flagship Project · 2024</p>
+      <h2 class="fttl rv d1">The <em>Meridian</em> Residences</h2>
+      <p class="fdsc rv d2">A landmark residential complex overlooking the Mumbai skyline. 42 bespoke apartments designed around natural light, open volumes, and artisan materiality.</p>
+      <div class="fmeta rv d2">
+        <div class="fmk"><div class="key">Location</div><div class="val">Bandra West</div></div>
+        <div class="fmk"><div class="key">Area</div><div class="val">18,400 sq ft</div></div>
+        <div class="fmk"><div class="key">Year</div><div class="val">2024</div></div>
+      </div>
+      <button class="bg rv d3">View Project <span class="arr">→</span></button>
+    </div>
+  </div>
+
+  <div class="gs">
+    <div class="gh rv"><h2 class="gttl">All <em>Works</em></h2><span class="va">View Archive →</span></div>
+    <div class="pgrid" id="pGrid">
+      <div class="pc w rv" data-f="residential"><div class="pcbg" style="background:linear-gradient(160deg,#2e2820,#1e1a14)"></div><div class="pco"><div class="pcc">Residential</div><div class="pcn">Horizon Villa, Alibaug</div><div class="pcl"><i class="fa-solid fa-location-dot"></i> Alibaug, Maharashtra</div></div><div class="pcb"><i class="fa-solid fa-arrow-up-right-from-square"></i></div></div>
+      <div class="pc rv d1" data-f="interior"><div class="pcbg" style="background:linear-gradient(200deg,#28241e,#1a1712)"></div><div class="pco"><div class="pcc">Interior</div><div class="pcn">The Copper Loft</div><div class="pcl"><i class="fa-solid fa-location-dot"></i> Bandra, Mumbai</div></div><div class="pcb"><i class="fa-solid fa-arrow-up-right-from-square"></i></div></div>
+      <div class="pc rv" data-f="commercial"><div class="pcbg" style="background:linear-gradient(170deg,#1e2024,#12141a)"></div><div class="pco"><div class="pcc">Commercial</div><div class="pcn">Atlas Headquarters</div><div class="pcl"><i class="fa-solid fa-location-dot"></i> BKC, Mumbai</div></div><div class="pcb"><i class="fa-solid fa-arrow-up-right-from-square"></i></div></div>
+      <div class="pc rv d1" data-f="luxury"><div class="pcbg" style="background:linear-gradient(140deg,#24201a,#1a1510)"></div><div class="pco"><div class="pcc">Luxury</div><div class="pcn">Palazzo Del Sol</div><div class="pcl"><i class="fa-solid fa-location-dot"></i> Juhu, Mumbai</div></div><div class="pcb"><i class="fa-solid fa-arrow-up-right-from-square"></i></div></div>
+      <div class="pc rv d2" data-f="renovation"><div class="pcbg" style="background:linear-gradient(120deg,#201e18,#2a2620)"></div><div class="pco"><div class="pcc">Renovation</div><div class="pcn">Heritage Bungalow</div><div class="pcl"><i class="fa-solid fa-location-dot"></i> Pune</div></div><div class="pcb"><i class="fa-solid fa-arrow-up-right-from-square"></i></div></div>
+      <div class="pc w rv d1" data-f="commercial"><div class="pcbg" style="background:linear-gradient(155deg,#1c1e22,#141618)"></div><div class="pco"><div class="pcc">Commercial</div><div class="pcn">The Grand Marina</div><div class="pcl"><i class="fa-solid fa-location-dot"></i> Navi Mumbai</div></div><div class="pcb"><i class="fa-solid fa-arrow-up-right-from-square"></i></div></div>
+      <div class="pc rv" data-f="residential"><div class="pcbg" style="background:linear-gradient(180deg,#222018,#1a1814)"></div><div class="pco"><div class="pcc">Residential</div><div class="pcn">Studio Noir</div><div class="pcl"><i class="fa-solid fa-location-dot"></i> Worli, Mumbai</div></div><div class="pcb"><i class="fa-solid fa-arrow-up-right-from-square"></i></div></div>
+    </div>
+  </div>
+
+  <div class="srow">
+    <div class="scell rv"><div class="scell-n cnt" data-target="500">0</div><div class="scell-l">Projects Completed</div><div class="scell-s">Residential & commercial</div></div>
+    <div class="scell rv d1"><div class="scell-n cnt" data-target="12">0</div><div class="scell-l">Years Experience</div><div class="scell-s">Architecture & interior</div></div>
+    <div class="scell rv d2"><div class="scell-n cnt" data-target="98">0</div><div class="scell-l">% Satisfaction</div><div class="scell-s">Independent surveys</div></div>
+    <div class="scell rv d3"><div class="scell-n cnt" data-target="22">0</div><div class="scell-l">Awards Won</div><div class="scell-s">National & international</div></div>
+  </div>
+
+  <div class="tss">
+    <div class="rvL">
+      <p class="tslbl">Client Stories</p>
+      <h2 class="tsttl">Words from those who <em style="font-style:italic">lived</em> the experience</h2>
+    </div>
+    <div class="tscds">
+      <div class="tscd rv d1"><p class="tst">Smart Space transformed our vision into a home that exceeded every expectation. Their attention to materiality and light is simply extraordinary.</p><div class="tsa"><div class="tsav">R</div><div><div class="tsan">Riya Mehta</div><div class="tsal">Bandra Residence · 2024</div></div></div></div>
+      <div class="tscd rv d2"><p class="tst">From the first sketch to handover, every detail was handled with precision. Our headquarters now reflects exactly who we are as a brand.</p><div class="tsa"><div class="tsav">A</div><div><div class="tsan">Arjun Kapoor</div><div class="tsal">Atlas HQ · 2023</div></div></div></div>
+    </div>
+  </div>
+
+  <div class="prcs">
+    <div class="prcsh">
+      <h2 class="prcsttl rvL">How we <em>work</em></h2>
+      <p class="prcsb rvR">Every project follows a rigorous process designed to translate your vision into a space that is both beautiful and deeply functional.</p>
+    </div>
+    <div class="prcss">
+      <div class="step rv"><div class="step-n">01</div><div class="step-i"><i class="fa-solid fa-magnifying-glass"></i></div><div class="step-t">Discovery</div><div class="step-x">We begin by deeply understanding your lifestyle, preferences, and requirements.</div></div>
+      <div class="step rv d1"><div class="step-n">02</div><div class="step-i"><i class="fa-solid fa-pen-ruler"></i></div><div class="step-t">Concept Design</div><div class="step-x">Our designers craft a bespoke concept — floor plans, mood boards, and 3D visualisations.</div></div>
+      <div class="step rv d2"><div class="step-n">03</div><div class="step-i"><i class="fa-solid fa-gears"></i></div><div class="step-t">Execution</div><div class="step-x">Project management from material sourcing to construction, with weekly progress reports.</div></div>
+      <div class="step rv d3"><div class="step-n">04</div><div class="step-i"><i class="fa-solid fa-key"></i></div><div class="step-t">Handover</div><div class="step-x">A meticulous final walkthrough ensuring every detail matches the approved design.</div></div>
+    </div>
+  </div>
+
+  <footer><div class="ft-logo" onclick="go('home')">Smart<span>Space</span></div><p>© 2025 Smart Space. All rights reserved.</p><div class="ft-lks"><a>Privacy</a><a>Terms</a><a>Careers</a></div></footer>
+</div>
+
+<!-- ════════════════════ SERVICES ════════════════════ -->
+<div class="page" id="page-services">
+  <div class="ph">
+    <canvas class="ph-cv"></canvas>
+    <div class="ph-grid"></div>
+    <div class="ph-orb"></div>
+    <div class="ph-in">
+      <p class="ph-lbl">What We Do</p>
+      <h1 class="ph-ttl">Our <em>Services</em></h1>
+      <p class="ph-sub">End-to-end design and build — from the first sketch to the final finish, handled with precision.</p>
+    </div>
+  </div>
+
+  <div class="ib">
+    <div class="rvL"><p class="lbl" style="color:var(--gold)">Our Approach</p><h2 class="ittl">Design is not decoration.<br><em>It is architecture of life.</em></h2></div>
+    <div class="rvR"><p class="isub"><strong>A studio built on craft and precision.</strong>At Smart Space, every service is underpinned by deep expertise, genuine craft, and obsessive attention to detail. We don't offer cookie-cutter solutions — we offer spaces thought through completely.</p></div>
+  </div>
+
+  <div class="smain">
+    <div style="margin-bottom:66px" class="rv"><p class="lbl">Core Offerings</p><h2 class="ttl">Everything you <em>need</em></h2></div>
+    <div>
+      <div class="svi open"><div class="svtrig"><div class="svtl"><span class="svnum">01</span><span class="svico"><i class="fa-solid fa-drafting-compass"></i></span><span class="svtitle">Architectural Design & Floor Planning</span></div><div class="svarr"><i class="fa-solid fa-plus"></i></div></div><div class="svbody"><div class="svinner"><div><p class="svdesc">Our architectural team creates intelligent, beautiful floor plans tailored to your life. Whether starting from scratch or adapting an existing structure, we balance spatial efficiency with aesthetic ambition.</p><div class="svpr"><div class="svprice">Starting from <span>₹45,000</span></div><button class="bsm"><span>Get a Quote →</span></button></div></div><div class="svfeats"><div class="svfeat"><div class="dot"></div>Custom floor plan creation</div><div class="svfeat"><div class="dot"></div>Upload & redesign existing plans</div><div class="svfeat"><div class="dot"></div>Structural & spatial optimisation</div><div class="svfeat"><div class="dot"></div>Construction-ready drawings</div><div class="svfeat"><div class="dot"></div>Municipal approval documentation</div></div></div></div></div>
+      <div class="svi"><div class="svtrig"><div class="svtl"><span class="svnum">02</span><span class="svico"><i class="fa-solid fa-cube"></i></span><span class="svtitle">3D Visualisation & Rendering</span></div><div class="svarr"><i class="fa-solid fa-plus"></i></div></div><div class="svbody"><div class="svinner"><div><p class="svdesc">See your space before it exists. Our photorealistic 3D renders and walkthroughs allow you to make confident decisions about materials, furniture, and lighting — eliminating costly surprises.</p><div class="svpr"><div class="svprice">Starting from <span>₹18,000</span></div><button class="bsm"><span>Get a Quote →</span></button></div></div><div class="svfeats"><div class="svfeat"><div class="dot"></div>Photorealistic still renders</div><div class="svfeat"><div class="dot"></div>Interactive 3D walkthroughs</div><div class="svfeat"><div class="dot"></div>Day/night lighting simulations</div><div class="svfeat"><div class="dot"></div>Material and finish previews</div><div class="svfeat"><div class="dot"></div>VR-ready output</div></div></div></div></div>
+      <div class="svi"><div class="svtrig"><div class="svtl"><span class="svnum">03</span><span class="svico"><i class="fa-solid fa-couch"></i></span><span class="svtitle">Interior Design & Furnishing</span></div><div class="svarr"><i class="fa-solid fa-plus"></i></div></div><div class="svbody"><div class="svinner"><div><p class="svdesc">Our interior design service goes beyond aesthetics — we create environments that shape how you feel and how you live. From curated furniture selections to bespoke joinery, every element unified.</p><div class="svpr"><div class="svprice">Starting from <span>₹65,000</span></div><button class="bsm"><span>Get a Quote →</span></button></div></div><div class="svfeats"><div class="svfeat"><div class="dot"></div>Concept boards & style direction</div><div class="svfeat"><div class="dot"></div>Furniture selection & procurement</div><div class="svfeat"><div class="dot"></div>Colour, material & finish curation</div><div class="svfeat"><div class="dot"></div>Lighting design & specification</div><div class="svfeat"><div class="dot"></div>Bespoke joinery & built-ins</div></div></div></div></div>
+      <div class="svi"><div class="svtrig"><div class="svtl"><span class="svnum">04</span><span class="svico"><i class="fa-solid fa-helmet-safety"></i></span><span class="svtitle">Construction & Project Management</span></div><div class="svarr"><i class="fa-solid fa-plus"></i></div></div><div class="svbody"><div class="svinner"><div><p class="svdesc">We manage the entire build process so you don't have to. Our project managers oversee contractors, quality control, procurement, and timelines — on budget and on schedule.</p><div class="svpr"><div class="svprice">10% of <span>project cost</span></div><button class="bsm"><span>Get a Quote →</span></button></div></div><div class="svfeats"><div class="svfeat"><div class="dot"></div>Full contractor management</div><div class="svfeat"><div class="dot"></div>Weekly site progress reports</div><div class="svfeat"><div class="dot"></div>Budget tracking & reporting</div><div class="svfeat"><div class="dot"></div>Quality control inspections</div><div class="svfeat"><div class="dot"></div>Final snagging & handover</div></div></div></div></div>
+      <div class="svi"><div class="svtrig"><div class="svtl"><span class="svnum">05</span><span class="svico"><i class="fa-solid fa-rotate"></i></span><span class="svtitle">Renovation & Restoration</span></div><div class="svarr"><i class="fa-solid fa-plus"></i></div></div><div class="svbody"><div class="svinner"><div><p class="svdesc">We specialise in breathing new life into existing structures — from contemporary apartment refreshes to heritage bungalow restorations, respecting what's there while elevating it.</p><div class="svpr"><div class="svprice">Starting from <span>₹30,000</span></div><button class="bsm"><span>Get a Quote →</span></button></div></div><div class="svfeats"><div class="svfeat"><div class="dot"></div>Existing structure assessment</div><div class="svfeat"><div class="dot"></div>Structural modification planning</div><div class="svfeat"><div class="dot"></div>Heritage restoration expertise</div><div class="svfeat"><div class="dot"></div>Kitchen & bathroom renovation</div><div class="svfeat"><div class="dot"></div>Façade & exterior upgrades</div></div></div></div></div>
+    </div>
+  </div>
+
+  <div class="pks">
+    <div class="rv"><p class="lbl">Pricing Tiers</p><h2 class="ttl" style="color:var(--cream)">Choose your <em>package</em></h2></div>
+    <div class="pkg-grid">
+      <div class="pkc rv"><div class="pkter">Essential</div><div class="pkname">Sketch</div><div class="pkprice">From <span>₹45K</span></div><div class="pkdiv"></div><div class="pkfeats"><div class="pkfeat"><i class="fa-solid fa-check"></i> 2D Floor plan design</div><div class="pkfeat"><i class="fa-solid fa-check"></i> Up to 2 rooms</div><div class="pkfeat"><i class="fa-solid fa-check"></i> 2 revision rounds</div><div class="pkfeat"><i class="fa-solid fa-check"></i> PDF delivery</div><div class="pkfeat off"><i class="fa-solid fa-xmark"></i> 3D renders</div><div class="pkfeat off"><i class="fa-solid fa-xmark"></i> Construction management</div></div><button class="btn-pk"><span>Get Started</span></button></div>
+      <div class="pkc fp rv d1"><div class="pkbadge">Most Popular</div><div class="pkter">Complete</div><div class="pkname">Studio</div><div class="pkprice">From <span>₹1.2L</span></div><div class="pkdiv"></div><div class="pkfeats"><div class="pkfeat"><i class="fa-solid fa-check"></i> Full home floor plan</div><div class="pkfeat"><i class="fa-solid fa-check"></i> 3D visualisation (3 views)</div><div class="pkfeat"><i class="fa-solid fa-check"></i> Interior design concept</div><div class="pkfeat"><i class="fa-solid fa-check"></i> 4 revision rounds</div><div class="pkfeat"><i class="fa-solid fa-check"></i> 2 site visits included</div><div class="pkfeat off"><i class="fa-solid fa-xmark"></i> Construction management</div></div><button class="btn-pk"><span>Get Started</span></button></div>
+      <div class="pkc rv d2"><div class="pkter">Premium</div><div class="pkname">Signature</div><div class="pkprice">Custom <span>Quote</span></div><div class="pkdiv"></div><div class="pkfeats"><div class="pkfeat"><i class="fa-solid fa-check"></i> Everything in Studio</div><div class="pkfeat"><i class="fa-solid fa-check"></i> Full 3D walkthrough</div><div class="pkfeat"><i class="fa-solid fa-check"></i> Construction management</div><div class="pkfeat"><i class="fa-solid fa-check"></i> Dedicated project manager</div><div class="pkfeat"><i class="fa-solid fa-check"></i> Unlimited revisions</div><div class="pkfeat"><i class="fa-solid fa-check"></i> 1-year post-handover support</div></div><button class="btn-pk"><span>Get Started</span></button></div>
+    </div>
+  </div>
+
+  <div class="tlsec">
+    <div class="rv"><p class="lbl">Digital Tools</p><h2 class="ttl">Design in your <em>own hands</em></h2></div>
+    <div class="tlgrid">
+      <div class="tlcard rv"><div class="tlnum tlin">01</div><div class="tlico tlin"><i class="fa-solid fa-wand-magic-sparkles"></i></div><h3 class="tltitle tlin">3D Room Designer</h3><p class="tldesc tlin">Place furniture, test colours, and see your space come to life in real-time 3D.</p><span class="tllink tlin">Launch Tool <span class="arr">→</span></span></div>
+      <div class="tlcard dk rv d1"><div class="tlnum tlin">02</div><div class="tlico tlin"><i class="fa-solid fa-map"></i></div><h3 class="tltitle tlin">Floor Plan Builder</h3><p class="tldesc tlin">Draw walls, add doors and windows, and create precise floor plans in minutes.</p><span class="tllink tlin">Launch Tool <span class="arr">→</span></span></div>
+      <div class="tlcard dk rv d1"><div class="tlnum tlin">03</div><div class="tlico tlin"><i class="fa-solid fa-palette"></i></div><h3 class="tltitle tlin">Colour & Material Studio</h3><p class="tldesc tlin">Experiment with wall colours, flooring, and finishes on your uploaded room photo.</p><span class="tllink tlin">Launch Tool <span class="arr">→</span></span></div>
+      <div class="tlcard rv d2"><div class="tlnum tlin">04</div><div class="tlico tlin"><i class="fa-solid fa-calculator"></i></div><h3 class="tltitle tlin">Project Cost Estimator</h3><p class="tldesc tlin">Get an instant estimate for your renovation or new build from 500+ real projects.</p><span class="tllink tlin">Launch Tool <span class="arr">→</span></span></div>
+    </div>
+  </div>
+
+  <div class="wsec">
+    <div class="win">
+      <div class="rvL"><p class="lbl">Why Smart Space</p><h2 class="ttl" style="color:var(--cream)">We earn trust through <em>results</em></h2><p class="wleft">Twelve years of delivering exceptional spaces across Mumbai and Maharashtra — unmatched creative vision with operational discipline.</p></div>
+      <div class="wright">
+        <div class="wcard rv"><div class="wico"><i class="fa-solid fa-shield-halved"></i></div><div class="wttl">End-to-End Accountability</div><div class="wtxt">One team, one point of contact. No passing the buck between architects and contractors.</div></div>
+        <div class="wcard rv d1"><div class="wico"><i class="fa-solid fa-clock"></i></div><div class="wttl">On Time, On Budget</div><div class="wtxt">94% of our projects delivered within the agreed timeline and cost estimate.</div></div>
+        <div class="wcard rv d2"><div class="wico"><i class="fa-solid fa-eye"></i></div><div class="wttl">Radical Transparency</div><div class="wtxt">Weekly reports, live budget dashboards, and complete invoicing shared with you.</div></div>
+        <div class="wcard rv d3"><div class="wico"><i class="fa-solid fa-star"></i></div><div class="wttl">Uncompromising Quality</div><div class="wtxt">Every finish, fitting, and material specified to a standard we're proud of.</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="cta">
+    <p class="cta-lbl rv">Ready to Begin?</p>
+    <h2 class="cta-ttl rv">Let's create something <em>remarkable</em> together</h2>
+    <div class="cta-btns rv">
+      <button class="bp" onclick="go('home','contact')"><span>Start a Project</span><span class="arr">→</span></button>
+      <button class="bo" onclick="go('projects')"><span>View Our Work</span><span class="arr">→</span></button>
+    </div>
+  </div>
+
+  <div class="fqsec">
+    <div class="fqinner">
+      <div class="rvL"><p class="lbl">Common Questions</p><h2 class="ttl">FAQ</h2><p>Can't find your answer? Reach us at smartspace@gmail.com or +91 98690 35747.</p></div>
+      <div class="rvR">
+        <div class="fqitem open"><div class="fqq">How long does a typical project take? <i class="fa-solid fa-plus fqico"></i></div><div class="fqa"><div class="fqai">Timelines vary by scope. A single-room interior design takes 4–6 weeks. A full-home renovation typically runs 4–8 months.</div></div></div>
+        <div class="fqitem"><div class="fqq">Do you work outside Mumbai? <i class="fa-solid fa-plus fqico"></i></div><div class="fqa"><div class="fqai">Yes. We regularly take on projects across Maharashtra — Pune, Nashik, Alibaug, and Goa. Travel costs beyond 60km are billed separately.</div></div></div>
+        <div class="fqitem"><div class="fqq">Can I see physical material samples? <i class="fa-solid fa-plus fqico"></i></div><div class="fqa"><div class="fqai">Absolutely. We arrange physical sample boards for all key materials — tiles, stone, timber, fabrics — before any purchase order is placed.</div></div></div>
+        <div class="fqitem"><div class="fqq">Is there a warranty on the construction? <i class="fa-solid fa-plus fqico"></i></div><div class="fqa"><div class="fqai">Yes. All structural and fit-out work carries a 1-year defect liability period. Signature clients receive 1-year post-handover support.</div></div></div>
+      </div>
+    </div>
+  </div>
+
+  <footer><div class="ft-logo" onclick="go('home')">Smart<span>Space</span></div><p>© 2025 Smart Space. All rights reserved.</p><div class="ft-lks"><a>Privacy</a><a>Terms</a><a>Careers</a></div></footer>
+</div>
+
+<script>
+/* ══════════════════════════════════════════
+   1. LOADER
+══════════════════════════════════════════ */
+const ldFill = document.getElementById('ldFill');
+const ldPct  = document.getElementById('ldPct');
+let ldVal = 0;
+const ldInt = setInterval(()=>{
+  ldVal = Math.min(ldVal + Math.random()*14, 99);
+  ldFill.style.width = ldVal + '%';
+  ldPct.textContent  = Math.floor(ldVal) + '%';
+}, 70);
+setTimeout(()=>{
+  clearInterval(ldInt);
+  ldFill.style.width = '100%'; ldPct.textContent = '100%';
+  setTimeout(()=>{
+    document.getElementById('loader').classList.add('out');
+    BOOT();
+  }, 350);
+}, 1800);
+
+/* ══════════════════════════════════════════
+   2. CURSOR
+══════════════════════════════════════════ */
+const curEl  = document.getElementById('cur');
+const curREl = document.getElementById('curR');
+let MX=0, MY=0, RX=0, RY=0;
+
+document.addEventListener('mousemove', e=>{ MX=e.clientX; MY=e.clientY; });
+
+// lag follow
+(function loop(){
+  RX += (MX-RX)*.09;
+  RY += (MY-RY)*.09;
+  curEl.style.transform  = `translate(${MX-3.5}px,${MY-3.5}px)`;
+  curREl.style.transform = `translate(${RX-15}px,${RY-15}px)`;
+  requestAnimationFrame(loop);
+})();
+
+// hover grow
+document.addEventListener('mouseover', e=>{
+  if(e.target.closest('button,a,nav a,.pc,.tscd,.wcard,.pkc,.tlcard,.fcard,.step,.svi,.fqitem'))
+    curREl.classList.add('hover');
+});
+document.addEventListener('mouseout', e=>{
+  if(e.target.closest('button,a,nav a,.pc,.tscd,.wcard,.pkc,.tlcard,.fcard,.step,.svi,.fqitem'))
+    curREl.classList.remove('hover');
+});
+
+// click flash
+document.addEventListener('mousedown', ()=>curREl.classList.add('click'));
+document.addEventListener('mouseup',   ()=>curREl.classList.remove('click'));
+
+/* ══════════════════════════════════════════
+   3. RIPPLE ON BUTTONS
+══════════════════════════════════════════ */
+document.querySelectorAll('.bp,.bo,.bg,.bsm,.btn-pk').forEach(btn=>{
+  btn.addEventListener('click', e=>{
+    const r = btn.getBoundingClientRect();
+    const rip = document.createElement('span');
+    rip.className = 'ripple';
+    const size = Math.max(r.width, r.height);
+    rip.style.cssText = `width:${size}px;height:${size}px;left:${e.clientX-r.left-size/2}px;top:${e.clientY-r.top-size/2}px`;
+    btn.appendChild(rip);
+    setTimeout(()=>rip.remove(), 650);
+  });
+});
+
+/* ══════════════════════════════════════════
+   4. SCROLL PROGRESS BAR
+══════════════════════════════════════════ */
+window.addEventListener('scroll', ()=>{
+  const sc = document.documentElement;
+  const pct = (sc.scrollTop / (sc.scrollHeight - sc.clientHeight)) * 100;
+  document.getElementById('spb').style.width = pct + '%';
+}, {passive:true});
+
+/* ══════════════════════════════════════════
+   5. PAGE WIPE TRANSITION
+══════════════════════════════════════════ */
+const wipe = document.getElementById('wipe');
+function go(page, anchor){
+  // wipe down
+  wipe.style.transition = 'transform .52s cubic-bezier(0.16,1,0.3,1)';
+  wipe.style.transformOrigin = 'bottom';
+  wipe.style.transform = 'scaleY(1)';
+
+  setTimeout(()=>{
+    // swap page
+    document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+    document.getElementById('page-'+page).classList.add('active');
+    // nav active
+    document.querySelectorAll('nav a').forEach(a=>a.classList.remove('on'));
+    const na = document.getElementById('na-'+page);
+    if(na) na.classList.add('on');
+    window.scrollTo(0,0);
+    // reset ph animations on hero pages
+    resetPH(page);
+    // wipe up
+    wipe.style.transformOrigin = 'top';
+    wipe.style.transform = 'scaleY(0)';
+    setTimeout(()=>{ initPage(); if(anchor) setTimeout(()=>{ const el=document.getElementById(anchor); if(el) el.scrollIntoView({behavior:'smooth'}); },180); }, 80);
+  }, 500);
+}
+
+function resetPH(page){
+  const h = document.querySelector(`#page-${page} .ph`);
+  if(!h) return;
+  h.querySelectorAll('.ph-lbl,.ph-ttl,.ph-sub,[style*="animation"]').forEach(el=>{
+    el.style.animation='none'; void el.offsetHeight; el.style.animation='';
+  });
+}
+
+/* ══════════════════════════════════════════
+   6. HEADER SCROLL EFFECT
+══════════════════════════════════════════ */
+window.addEventListener('scroll', ()=>{
+  document.getElementById('hdr').classList.toggle('stuck', window.scrollY > 60);
+}, {passive:true});
+
+/* ══════════════════════════════════════════
+   7. SCROLL REVEALS (IntersectionObserver)
+══════════════════════════════════════════ */
+function initReveals(){
+  const sel = '.page.active .rv,.page.active .rvL,.page.active .rvR,.page.active .rvS';
+  const obs = new IntersectionObserver(entries=>{
+    entries.forEach(e=>{
+      if(e.isIntersecting){
+        e.target.classList.add('show');
+        obs.unobserve(e.target);
+      }
+    });
+  }, {threshold:0.07, rootMargin:'0px 0px -20px 0px'});
+  document.querySelectorAll(sel).forEach(el=>{ if(!el.classList.contains('show')) obs.observe(el); });
+}
+
+/* ══════════════════════════════════════════
+   8. WORD-SPLIT TEXT ANIMATION
+      (applies to elements with .split-text)
+══════════════════════════════════════════ */
+function splitTextAnimate(){
+  document.querySelectorAll('.page.active .split-text').forEach(el=>{
+    const words = el.textContent.trim().split(/\s+/);
+    el.innerHTML = words.map((w,i)=>
+      `<span class="split-word" style="transition-delay:${i*0.07}s"><span class="inner">${w}</span></span>`
+    ).join(' ');
+    // observe
+    const obs = new IntersectionObserver(entries=>{
+      entries.forEach(e=>{
+        if(e.isIntersecting){
+          e.target.querySelectorAll('.split-word').forEach(sw=>sw.classList.add('show'));
+          obs.unobserve(e.target);
+        }
+      });
+    },{threshold:0.2});
+    obs.observe(el);
+  });
+}
+
+/* ══════════════════════════════════════════
+   9. MASK REVEAL (image / video wipe)
+══════════════════════════════════════════ */
+function initMasks(){
+  ['.fps-img','.vw'].forEach(sel=>{
+    document.querySelectorAll('.page.active '+sel).forEach(el=>{
+      const obs = new IntersectionObserver(entries=>{
+        entries.forEach(e=>{ if(e.isIntersecting){ e.target.classList.add('unmasked'); obs.unobserve(e.target); } });
+      },{threshold:0.15});
+      obs.observe(el);
+    });
+  });
+}
+
+/* ══════════════════════════════════════════
+   10. COUNTER ANIMATION
+══════════════════════════════════════════ */
+function animNum(el, dur, suffix){
+  const target = parseInt(el.dataset.target);
+  const start = performance.now();
+  (function step(now){
+    const t    = Math.min((now - start)/dur, 1);
+    const ease = 1 - Math.pow(1-t, 4);            // ease-out-quart
+    el.textContent = Math.floor(ease * target) + (t>=1 && suffix ? suffix : '');
+    if(t < 1) requestAnimationFrame(step);
+    else el.textContent = target + (suffix||'');
+  })(start);
+}
+
+function initCounters(){
+  document.querySelectorAll('.page.active .cnt[data-target]').forEach(el=>{
+    const obs = new IntersectionObserver(entries=>{
+      entries.forEach(e=>{ if(e.isIntersecting){ animNum(el, 2200, ''); obs.unobserve(el); } });
+    },{threshold:0.5});
+    obs.observe(el);
+  });
+}
+
+/* ══════════════════════════════════════════
+   11. HERO STAT (runs once)
+══════════════════════════════════════════ */
+function initHeroStat(){
+  const el = document.getElementById('heroNum');
+  if(!el) return;
+  const obs = new IntersectionObserver(entries=>{
+    entries.forEach(e=>{ if(e.isIntersecting){ animNum(el, 2400, '+'); obs.unobserve(el); } });
+  },{threshold:0.5});
+  obs.observe(el);
+}
+
+/* ══════════════════════════════════════════
+   12. PARALLAX (sections on scroll)
+══════════════════════════════════════════ */
+function initParallax(){
+  // hero bg
+  window.addEventListener('scroll', ()=>{
+    if(document.getElementById('page-home').classList.contains('active')){
+      const y = window.scrollY;
+      const bg = document.getElementById('bgC');
+      if(bg) bg.style.transform = `scale(1) translateY(${y * .14}px)`;
+      const mesh = document.querySelector('.hb-mesh');
+      if(mesh) mesh.style.transform = `translateY(${y*.08}px)`;
+    }
+  },{passive:true});
+
+  // parallax on section images (slight depth)
+  const parallaxEls = document.querySelectorAll('.fps-ph,.vw-ph,.fi-bg');
+  const pObs = new IntersectionObserver(entries=>{
+    entries.forEach(e=>{
+      if(e.isIntersecting) e.target.dataset.parallax='1';
+      else delete e.target.dataset.parallax;
+    });
+  },{threshold:0});
+  parallaxEls.forEach(el=>pObs.observe(el));
+
+  window.addEventListener('scroll', ()=>{
+    parallaxEls.forEach(el=>{
+      if(!el.dataset.parallax) return;
+      const rect = el.closest('[class]').getBoundingClientRect();
+      const cy   = rect.top + rect.height/2 - window.innerHeight/2;
+      el.style.transform = `translateY(${cy*.06}px)`;
+    });
+  },{passive:true});
+}
+
+/* ══════════════════════════════════════════
+   13. PARTICLE CANVAS
+══════════════════════════════════════════ */
+function mkCanvas(canvas, count){
+  if(!canvas) return;
+  const ctx = canvas.getContext('2d');
+  let W, H, pts = [], mouse = {x:-999, y:-999};
+
+  function resize(){ W=canvas.width=canvas.offsetWidth; H=canvas.height=canvas.offsetHeight; }
+  resize();
+  window.addEventListener('resize', resize, {passive:true});
+
+  // mouse proximity for hero only
+  if(canvas.id === 'hCvs'){
+    canvas.parentElement.addEventListener('mousemove', e=>{
+      const r = canvas.getBoundingClientRect();
+      mouse.x = e.clientX - r.left;
+      mouse.y = e.clientY - r.top;
+    });
+    canvas.parentElement.addEventListener('mouseleave', ()=>{ mouse.x=-999; mouse.y=-999; });
+  }
+
+  for(let i=0;i<count;i++) pts.push({
+    x: Math.random()*3000, y: Math.random()*1500,
+    vx:(Math.random()-.5)*.28, vy:(Math.random()-.5)*.14,
+    r: Math.random()*1.5+.25, a: Math.random()*.3+.06,
+    ox:0, oy:0
+  });
+
+  (function draw(){
+    ctx.clearRect(0,0,W,H);
+    pts.forEach(p=>{
+      // mouse repulsion (hero canvas only)
+      if(canvas.id==='hCvs'){
+        const dx=p.x-mouse.x, dy=p.y-mouse.y, d=Math.hypot(dx,dy);
+        if(d<120){ const f=((120-d)/120)*.8; p.ox+=dx/d*f; p.oy+=dy/d*f; }
+        p.ox*=.92; p.oy*=.92;
+      }
+      p.x+=p.vx+(p.ox||0); p.y+=p.vy+(p.oy||0);
+      if(p.x<0)p.x=W; if(p.x>W)p.x=0;
+      if(p.y<0)p.y=H; if(p.y>H)p.y=0;
+      ctx.beginPath();
+      ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+      ctx.fillStyle=`rgba(201,169,110,${p.a})`;
+      ctx.fill();
+    });
+    // connections
+    for(let i=0;i<pts.length;i++){
+      for(let j=i+1;j<pts.length;j++){
+        const d=Math.hypot(pts[i].x-pts[j].x,pts[i].y-pts[j].y);
+        if(d<110){
+          ctx.beginPath();
+          ctx.moveTo(pts[i].x,pts[i].y);
+          ctx.lineTo(pts[j].x,pts[j].y);
+          ctx.strokeStyle=`rgba(201,169,110,${.055*(1-d/110)})`;
+          ctx.lineWidth=.5;
+          ctx.stroke();
+        }
+      }
+    }
+    requestAnimationFrame(draw);
+  })();
+}
+
+/* ══════════════════════════════════════════
+   14. 3D TILT on cards
+══════════════════════════════════════════ */
+function initTilt(){
+  if(window.innerWidth < 960) return;
+  document.querySelectorAll('.page.active .pc,.page.active .pkc,.page.active .wcard,.page.active .tscd').forEach(card=>{
+    card.addEventListener('mousemove', e=>{
+      const r=card.getBoundingClientRect();
+      const x=((e.clientX-r.left)/r.width -.5)*14;
+      const y=((e.clientY-r.top) /r.height-.5)*-14;
+      card.style.transform=`perspective(900px) rotateY(${x}deg) rotateX(${y}deg) scale(1.025)`;
+      card.style.transition='transform .1s';
+    });
+    card.addEventListener('mouseleave', ()=>{
+      card.style.transition='transform .55s cubic-bezier(0.16,1,0.3,1)';
+      card.style.transform='';
+    });
+  });
+}
+
+/* ══════════════════════════════════════════
+   15. MAGNETIC BUTTONS
+══════════════════════════════════════════ */
+function initMagnetic(){
+  if(window.innerWidth < 960) return;
+  document.querySelectorAll('.page.active .bp,.page.active .bo,.page.active .bg').forEach(btn=>{
+    btn.addEventListener('mousemove', e=>{
+      const r=btn.getBoundingClientRect();
+      const dx=(e.clientX-(r.left+r.width /2))*.28;
+      const dy=(e.clientY-(r.top +r.height/2))*.28;
+      btn.style.transform=`translate(${dx}px,${dy}px)`;
+    });
+    btn.addEventListener('mouseleave', ()=>{ btn.style.transform=''; });
+  });
+}
+
+/* ══════════════════════════════════════════
+   16. FILTER (Projects)
+══════════════════════════════════════════ */
+function initFilter(){
+  document.querySelectorAll('.fbt').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      document.querySelectorAll('.fbt').forEach(b=>b.classList.remove('on'));
+      btn.classList.add('on');
+      const f = btn.dataset.f;
+      document.querySelectorAll('#pGrid .pc').forEach((c,i)=>{
+        const match = f==='all' || c.dataset.f===f;
+        c.style.transition=`opacity .4s ${i*.04}s ease, transform .4s ${i*.04}s cubic-bezier(0.16,1,0.3,1)`;
+        c.style.opacity  = match ? '1'      : '0.1';
+        c.style.transform= match ? ''       : 'scale(.94)';
+        c.style.pointerEvents = match ? '' : 'none';
+      });
+    });
+  });
+}
+
+/* ══════════════════════════════════════════
+   17. ACCORDIONS
+══════════════════════════════════════════ */
+function initAccordions(){
+  document.querySelectorAll('.svtrig').forEach(t=>{
+    t.addEventListener('click', ()=>{
+      const item = t.parentElement;
+      const wasOpen = item.classList.contains('open');
+      document.querySelectorAll('.svi').forEach(s=>s.classList.remove('open'));
+      if(!wasOpen) item.classList.add('open');
+    });
+  });
+  document.querySelectorAll('.fqq').forEach(q=>{
+    q.addEventListener('click', ()=>{
+      const item = q.parentElement;
+      const wasOpen = item.classList.contains('open');
+      document.querySelectorAll('.fqitem').forEach(i=>i.classList.remove('open'));
+      if(!wasOpen) item.classList.add('open');
+    });
+  });
+}
+
+/* ══════════════════════════════════════════
+   18. STAGGERED ROW ANIMATION (stats, steps)
+══════════════════════════════════════════ */
+function initStaggerRows(){
+  document.querySelectorAll('.page.active .srow,.page.active .prcss,.page.active .fstrip').forEach(row=>{
+    const obs = new IntersectionObserver(entries=>{
+      entries.forEach(e=>{
+        if(e.isIntersecting){
+          [...e.target.children].forEach((child, i)=>{
+            child.style.opacity='0';
+            child.style.transform='translateY(30px)';
+            setTimeout(()=>{
+              child.style.transition='opacity .7s cubic-bezier(0.16,1,0.3,1), transform .7s cubic-bezier(0.16,1,0.3,1)';
+              child.style.opacity='1';
+              child.style.transform='none';
+            }, i*120);
+          });
+          obs.unobserve(e.target);
+        }
+      });
+    },{threshold:0.15});
+    obs.observe(row);
+  });
+}
+
+/* ══════════════════════════════════════════
+   19. TOOL LINK (3D Room Designer -> Blueprint)
+══════════════════════════════════════════ */
+function initToolLinks(){
+  const target = 'http://localhost:8002';
+  document.querySelectorAll('.tlcard').forEach(card=>{
+    const titleEl = card.querySelector('.tltitle');
+    if(!titleEl) return;
+    const title = titleEl.textContent.trim().toLowerCase();
+    // "Design the room" action maps to 3D Room Designer card.
+    if(title.includes('3d room designer')){
+      card.style.cursor = 'pointer';
+      card.addEventListener('click', ()=>{
+        window.open(target, '_blank', 'noopener');
+      });
+    }
+  });
+}
+
+/* ══════════════════════════════════════════
+   20. TEXT TICKER (subtle hero bg word)
+══════════════════════════════════════════ */
+function initPage(){
+  initReveals();
+  initMasks();
+  initCounters();
+  splitTextAnimate();
+  initStaggerRows();
+  // page hero canvases
+  document.querySelectorAll('.page.active .ph-cv').forEach(c=>mkCanvas(c,32));
+  setTimeout(()=>{ initTilt(); initMagnetic(); }, 100);
+}
+
+/* ══════════════════════════════════════════
+   BOOT — runs once after loader
+══════════════════════════════════════════ */
+function BOOT(){
+  // hero canvas
+  mkCanvas(document.getElementById('hCvs'), 72);
+  // hero bg zoom
+  setTimeout(()=>{ const b=document.getElementById('bgC'); if(b) b.classList.add('go'); }, 120);
+  // hero stat counter
+  initHeroStat();
+  // parallax
+  initParallax();
+  // header
+  window.dispatchEvent(new Event('scroll'));
+  // filter
+  initFilter();
+  // accordions
+  initAccordions();
+  // tool links
+  initToolLinks();
+  // init first page
+  initPage();
+}
+</script>
 </body>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
-<script src="app.js"></script>
-
 </html>
-
-
-

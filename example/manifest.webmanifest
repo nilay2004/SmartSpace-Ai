@@ -1,0 +1,18 @@
+{
+  "name": "SmartSpace Floor Plan Designer",
+  "short_name": "Blueprint3D",
+  "description": "Interactive 3D floor plan and interior design tool",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#1a1a1a",
+  "theme_color": "#2c3e50",
+  "icons": [
+    {
+      "src": "icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
